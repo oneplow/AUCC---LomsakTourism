@@ -346,8 +346,18 @@ textarea:focus-visible,
 
 .planner-section {
   background: var(--color-surface-alt);
-  border-block: 1px solid var(--color-border);
-  padding-block: clamp(4rem, 8vw, 7rem);
+  border-bottom: 1px solid var(--color-border);
+  padding-block: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .planner-section {
+    padding-block: 2.5rem;
+  }
+}
+
+.planner-intro {
+  padding-top: .75rem;
 }
 
 .planner-layout {

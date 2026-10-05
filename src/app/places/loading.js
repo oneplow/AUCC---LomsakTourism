@@ -1,4 +1,4 @@
-﻿import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 
 export default function PlacesLoading() {
   return (
@@ -7,7 +7,7 @@ export default function PlacesLoading() {
       
       <main className="flex-1">
         <header className="border-b border-border bg-surface-alt py-6 sm:py-10">
-          <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-12">
+          <div className="page-shell grid gap-6 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-12">
             <div className="pt-3">
               <div className="h-4 w-32 bg-surface-alt/60 rounded animate-pulse" />
               <div className="mt-4 space-y-3">
@@ -22,7 +22,7 @@ export default function PlacesLoading() {
           </div>
         </header>
 
-        <section className="mx-auto w-full max-w-6xl px-4 pt-8 pb-16 sm:px-6 md:pb-24">
+        <section className="page-shell pt-8 pb-16 md:pb-24">
           <div className="places-search mb-8">
             <Search size={22} className="text-content-secondary shrink-0" />
             <div className="h-6 flex-1 bg-surface-alt rounded animate-pulse" />

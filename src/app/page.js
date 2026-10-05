@@ -58,9 +58,9 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="flex min-h-screen flex-col bg-bg">
       <Navbar />
-      <main>
+      <main className="flex-1">
         <TripPlanner categories={categories} allPlaces={allPlaces} />
 
         <section className="page-shell py-16 md:py-24" aria-labelledby="featured-title">

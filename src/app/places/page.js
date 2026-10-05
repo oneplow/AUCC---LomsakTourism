@@ -46,7 +46,7 @@ export default async function PlacesPage() {
       <Navbar />
       <main className="flex-1">
         <header className="border-b border-border bg-surface-alt py-6 sm:py-10">
-          <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-12">
+          <div className="page-shell grid gap-6 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-12">
             <div className="pt-3">
               <p className="eyebrow">คู่มือการเดินทาง / หล่มสัก</p>
               <h1 className="mt-4 text-2xl leading-snug lg:text-4xl xl:text-5xl">
@@ -64,7 +64,7 @@ export default async function PlacesPage() {
             </div>
           </div>
         </header>
-        <section className="mx-auto w-full max-w-6xl px-4 pt-8 pb-16 sm:px-6 md:pb-24" aria-label="ค้นหาสถานที่ท่องเที่ยว">
+        <section className="page-shell pt-8 pb-16 md:pb-24" aria-label="ค้นหาสถานที่ท่องเที่ยว">
           <PlacesClient initialPlaces={places} initialCategories={categories} />
         </section>
       </main>
