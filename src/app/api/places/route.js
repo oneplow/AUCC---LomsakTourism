@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+﻿﻿import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import * as placesService from '@/services/placesService';
 

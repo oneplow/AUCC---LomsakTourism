@@ -72,10 +72,10 @@ CREATE TABLE IF NOT EXISTS trip_plans (
   trip_id INT AUTO_INCREMENT PRIMARY KEY,
   days INT,
   budget DECIMAL(10, 2),
-  start_time TIME,
-  end_time TIME,
   place_types VARCHAR(255),
   plan_result JSON,
+  start_time TIME,
+  end_time TIME,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

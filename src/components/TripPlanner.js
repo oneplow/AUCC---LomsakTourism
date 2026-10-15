@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 import { useState, useRef } from 'react';
 import TripRouteMap from '@/components/TripRouteMap';
-import { Sparkles, MapPin, Wallet, Clock, Navigation, Map, AlertTriangle, LocateFixed, CheckCircle, Radar, Lightbulb } from 'lucide-react';
+import { Sparkles, MapPin, Wallet, Clock, Navigation, Map, AlertTriangle, LocateFixed, CheckCircle, Radar, Lightbulb, Search } from 'lucide-react';
 
 export default function TripPlanner({ categories = [] }) {
-  const [form, setForm] = useState({ days: 1, budget: 3000, start_time: '08:00', end_time: '18:00', place_types: [], radius_km: 50, location_mode: 'auto', manual_lat: '', manual_lng: '' });
+  const [form, setForm] = useState({ days: 1, budget: 3000, start_time: '08:00', end_time: '18:00', place_types: [], radius_km: 50, location_mode: 'auto', manual_lat: '', manual_lng: '', search_address: '' });
   const [plan, setPlan] = useState(null);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,6 +12,7 @@ export default function TripPlanner({ categories = [] }) {
   const [routePoints, setRoutePoints] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('idle');
+  const [searchingAddress, setSearchingAddress] = useState(false);
   const resultsRef = useRef(null);
 
   const update = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -25,8 +26,38 @@ export default function TripPlanner({ categories = [] }) {
     navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
   });
 
+  const searchAddress = async () => {
+    if (!form.search_address.trim()) return;
+    setSearchingAddress(true);
+    setError('');
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(form.search_address)}&format=json&limit=1`, {
+        headers: { 'User-Agent': 'LomsakTourism/1.0' }
+      });
+      const data = await res.json();
+      if (data.length > 0) {
+        update('manual_lat', data[0].lat);
+        update('manual_lng', data[0].lon);
+        update('location_mode', 'manual');
+        setGpsStatus('idle');
+      } else {
+        setError('ไม่พบที่อยู่ที่ค้นหา กรุณาลองใหม่อีกครั้ง');
+      }
+    } catch {
+      setError('เกิดข้อผิดพลาดในการค้นหาที่อยู่');
+    } finally {
+      setSearchingAddress(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (form.place_types.length === 0) {
+      setError('กรุณาเลือกประเภทสถานที่อย่างน้อย 1 ประเภท');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setNote('');
@@ -118,10 +149,32 @@ export default function TripPlanner({ categories = [] }) {
                 <button type="button" aria-pressed={form.location_mode === 'manual'} onClick={() => update('location_mode', 'manual')} className={`location-choice ${form.location_mode === 'manual' ? 'is-selected' : ''}`}><Map size={18} />กำหนดเอง</button>
               </div>
               {form.location_mode === 'manual' && (
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <input type="text" inputMode="decimal" placeholder="Latitude" aria-label="Latitude" value={form.manual_lat} onChange={e => update('manual_lat', e.target.value)} className="nature-input" />
-                  <input type="text" inputMode="decimal" placeholder="Longitude" aria-label="Longitude" value={form.manual_lng} onChange={e => update('manual_lng', e.target.value)} className="nature-input" />
-                </div>
+                <>
+                  <div className="mt-3 flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="ค้นหาชื่อสถานที่หรือที่อยู่" 
+                      aria-label="ค้นหาที่อยู่"
+                      value={form.search_address} 
+                      onChange={e => update('search_address', e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchAddress())}
+                      className="nature-input flex-1" 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={searchAddress} 
+                      disabled={searchingAddress || !form.search_address.trim()}
+                      className="nature-button px-4"
+                      aria-label="ค้นหา"
+                    >
+                      {searchingAddress ? <span className="loading-ring" /> : <Search size={18} />}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <input type="text" inputMode="decimal" placeholder="Latitude" aria-label="Latitude" value={form.manual_lat} onChange={e => update('manual_lat', e.target.value)} className="nature-input" />
+                    <input type="text" inputMode="decimal" placeholder="Longitude" aria-label="Longitude" value={form.manual_lng} onChange={e => update('manual_lng', e.target.value)} className="nature-input" />
+                  </div>
+                </>
               )}
             </div>
 
