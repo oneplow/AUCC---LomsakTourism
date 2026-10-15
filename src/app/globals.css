@@ -493,6 +493,8 @@ textarea:focus-visible,
   background: var(--color-bg);
   font-size: .8rem;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .loading-ring {
