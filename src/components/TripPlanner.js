@@ -230,6 +230,7 @@ export default function TripPlanner({ categories = [] }) {
                   <li key={i} className="grid grid-cols-[auto_1fr] gap-4 border-t border-border-light pt-4 first:border-0 first:pt-0">
                     <span className="text-sm font-semibold text-primary whitespace-nowrap">{a.time}</span>
                     <div>
+                      {a.travel && <p className="mb-1 inline-flex items-center gap-1 text-xs text-content-muted"><Navigation size={12} />{a.travel}</p>}
                       <p className="font-semibold">{a.place}</p>
                       {a.description && <p className="mt-1 text-sm text-content-secondary leading-relaxed">{a.description}</p>}
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-content-muted">
