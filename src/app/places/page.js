@@ -3,41 +3,13 @@ import Footer from '@/components/Footer';
 import PlacesClient from '@/components/PlacesClient';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
+import { getCategories, getPlacesSafe } from '@/lib/publicData';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // 1 hour
-
-async function getPlaces() {
-  try {
-    const res = await fetch("http://localhost:3000/api/places?sort=newest&limit=50", {
-      next: { revalidate: 3600 }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.places || [];
-  } catch (error) {
-    console.error('Failed to fetch places:', error);
-    return [];
-  }
-}
-
-async function getCategories() {
-  try {
-    const res = await fetch("http://localhost:3000/api/categories", {
-      next: { revalidate: 3600 }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.categories || [];
-  } catch (error) {
-    console.error('Failed to fetch categories:', error);
-    return [];
-  }
-}
 
 export default async function PlacesPage() {
   const [places, categories] = await Promise.all([
-    getPlaces(),
+    getPlacesSafe({ sort: 'newest', limit: 50 }),
     getCategories()
   ]);
 

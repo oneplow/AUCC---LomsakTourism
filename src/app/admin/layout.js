@@ -61,7 +61,7 @@ export default function AdminLayout({ children }) {
       <aside id="admin-sidebar" ref={sidebarRef} aria-label="เมนูผู้ดูแลระบบ" className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-white lg:visible lg:translate-x-0 ${sidebarOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'}`}>
         <div className="flex h-full flex-col overflow-y-auto">
           <div className="flex items-center justify-between border-b border-border px-5 py-5">
-            <Link href="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white"><Compass className="h-5 w-5" /></span><span><strong className="block text-sm">เที่ยวหล่มสัก</strong><small className="text-xs text-content-muted">Admin workspace</small></span></Link>
+            <Link href="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white"><Compass className="h-5 w-5" /></span><span><strong className="block text-sm">หล่มสักทริป AI</strong><small className="text-xs text-content-muted">Admin workspace</small></span></Link>
             <button aria-label="ปิดเมนู" onClick={closeSidebar} className="flex h-11 w-11 items-center justify-center rounded-xl text-content-secondary hover:bg-surface-alt lg:hidden"><X className="h-5 w-5" /></button>
           </div>
           <nav className="flex-1 space-y-1 p-3">

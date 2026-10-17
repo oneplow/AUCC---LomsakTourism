@@ -1,60 +1,18 @@
-﻿﻿import Link from 'next/link';
+﻿﻿﻿import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PlaceCard from '@/components/PlaceCard';
 import TripPlanner from '@/components/TripPlanner';
 import { ArrowRight } from 'lucide-react';
+import { getCategories, getPlacesSafe } from '@/lib/publicData';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // 1 hour
-
-async function getCategories() {
-  try {
-    const res = await fetch("http://localhost:3000/api/categories", {
-      next: { revalidate: 3600 }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.categories || [];
-  } catch (error) {
-    console.error('Failed to fetch categories:', error);
-    return [];
-  }
-}
-
-async function getFeaturedPlaces() {
-  try {
-    const res = await fetch("http://localhost:3000/api/places?sort=popular&limit=4", {
-      next: { revalidate: 3600 }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.places || [];
-  } catch (error) {
-    console.error('Failed to fetch featured places:', error);
-    return [];
-  }
-}
-
-async function getAllPlaces() {
-  try {
-    const res = await fetch("http://localhost:3000/api/places?limit=200", {
-      next: { revalidate: 3600 }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.places || [];
-  } catch (error) {
-    console.error('Failed to fetch all places:', error);
-    return [];
-  }
-}
 
 export default async function HomePage() {
   const [categories, featuredPlaces, allPlaces] = await Promise.all([
     getCategories(),
-    getFeaturedPlaces(),
-    getAllPlaces()
+    getPlacesSafe({ sort: 'popular', limit: 4 }),
+    getPlacesSafe({ limit: 200 })
   ]);
 
   return (

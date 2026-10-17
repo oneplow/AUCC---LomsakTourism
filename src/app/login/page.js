@@ -44,7 +44,7 @@ export default function LoginPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#d6b36a]/60 text-[#d6b36a]">
             <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v18m0-14 6-3m-6 7 7-3m-7 7 5-2m-5-9-5-3m5 8-6-3m6 8-4-2" /></svg>
           </div>
-          <span className="text-2xl font-semibold tracking-tight">เที่ยวหล่มสัก</span>
+          <span className="text-2xl font-semibold tracking-tight">หล่มสักทริป AI</span>
         </div>
         <div className="relative max-w-lg">
           <p className="mb-5 text-sm font-medium uppercase tracking-[0.25em] text-[#d6b36a]">Lomsak Tourism · Staff portal</p>
@@ -57,7 +57,7 @@ export default function LoginPage() {
       <section className="flex min-h-screen items-center justify-center px-5 py-12 sm:px-10">
         <div className="w-full max-w-md">
           <div className="mb-10 lg:hidden">
-            <Link href="/" className="inline-flex items-center gap-2 text-xl font-semibold text-[#173d2d]">เที่ยวหล่มสัก</Link>
+            <Link href="/" className="inline-flex items-center gap-2 text-xl font-semibold text-[#173d2d]">หล่มสักทริป AI</Link>
           </div>
           <div className="mb-8">
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-[#a16a2a]">ยินดีต้อนรับกลับมา</p>

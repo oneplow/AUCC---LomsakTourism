@@ -1,4 +1,4 @@
-﻿﻿'use client';
+﻿'use client';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -24,7 +24,7 @@ export default function PlaceCard({ place }) {
                 <MapPin size={28} strokeWidth={1.3} />
               </div>
               <div className="relative">
-                <p className="text-sm font-medium text-primary">เที่ยวหล่มสัก</p>
+                <p className="text-sm font-medium text-primary">หล่มสักทริป AI</p>
                 <p className="mt-1 text-xs leading-5 text-content-secondary">ยังไม่มีภาพให้แสดง</p>
               </div>
             </div>
