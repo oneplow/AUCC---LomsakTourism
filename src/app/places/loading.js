@@ -4,7 +4,7 @@ export default function PlacesLoading() {
   return (
     <div className="flex min-h-screen flex-col bg-bg">
       <div className="h-16 border-b border-border bg-white" />
-      
+
       <main className="flex-1">
         <header className="border-b border-border bg-surface-alt py-6 sm:py-10">
           <div className="page-shell grid gap-6 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-12">
@@ -49,7 +49,10 @@ export default function PlacesLoading() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }, (_, i) => (
-                  <div key={i} className="bg-white rounded-xl border border-border overflow-hidden animate-pulse">
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl border border-border overflow-hidden animate-pulse"
+                  >
                     <div className="aspect-[4/3] bg-surface-alt" />
                     <div className="p-5 space-y-4">
                       <div className="h-5 bg-surface-alt rounded w-3/4" />

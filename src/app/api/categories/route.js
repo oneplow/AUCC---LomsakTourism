@@ -6,11 +6,14 @@ import { requireAuth } from '@/lib/auth';
 export async function GET() {
   try {
     const [categories] = await pool.query('SELECT * FROM categories ORDER BY name');
-    return NextResponse.json({ categories }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
-      },
-    });
+    return NextResponse.json(
+      { categories },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+        },
+      }
+    );
   } catch (error) {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
@@ -26,7 +29,10 @@ export async function POST(request) {
     if (!name) return NextResponse.json({ error: 'กรุณากรอกชื่อหมวดหมู่' }, { status: 400 });
 
     const [result] = await pool.query('INSERT INTO categories (name) VALUES (?)', [name]);
-    return NextResponse.json({ message: 'เพิ่มหมวดหมู่สำเร็จ', category_id: result.insertId }, { status: 201 });
+    return NextResponse.json(
+      { message: 'เพิ่มหมวดหมู่สำเร็จ', category_id: result.insertId },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }

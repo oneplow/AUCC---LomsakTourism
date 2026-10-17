@@ -6,7 +6,10 @@ import { getAuthUser } from '@/lib/auth';
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
-    const [images] = await pool.query('SELECT * FROM place_images WHERE place_id = ? ORDER BY created_at DESC', [id]);
+    const [images] = await pool.query(
+      'SELECT * FROM place_images WHERE place_id = ? ORDER BY created_at DESC',
+      [id]
+    );
     return NextResponse.json({ images });
   } catch (error) {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
@@ -43,7 +46,10 @@ export async function POST(request, { params }) {
       [id, image_url]
     );
 
-    return NextResponse.json({ message: 'เพิ่มรูปภาพสำเร็จ', image_id: result.insertId }, { status: 201 });
+    return NextResponse.json(
+      { message: 'เพิ่มรูปภาพสำเร็จ', image_id: result.insertId },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }

@@ -3,7 +3,13 @@ import pool from '@/lib/db';
 /**
  * Get all places with search, filter, pagination
  */
-export async function getPlaces({ search = '', category = '', sort = 'newest', page = 1, limit = 12 }) {
+export async function getPlaces({
+  search = '',
+  category = '',
+  sort = 'newest',
+  page = 1,
+  limit = 12,
+}) {
   const offset = (page - 1) * limit;
 
   let query = `
@@ -76,10 +82,7 @@ export async function getPlaceById(id) {
     return null;
   }
 
-  const [images] = await pool.query(
-    'SELECT * FROM place_images WHERE place_id = ?',
-    [id]
-  );
+  const [images] = await pool.query('SELECT * FROM place_images WHERE place_id = ?', [id]);
 
   return { ...rows[0], images };
 }
@@ -88,12 +91,34 @@ export async function getPlaceById(id) {
  * Create new place
  */
 export async function createPlace(placeData) {
-  const { category_id, name, description, history, address, latitude, longitude, open_time, close_time, phone } = placeData;
+  const {
+    category_id,
+    name,
+    description,
+    history,
+    address,
+    latitude,
+    longitude,
+    open_time,
+    close_time,
+    phone,
+  } = placeData;
 
   const [result] = await pool.query(
     `INSERT INTO places (category_id, name, description, history, address, latitude, longitude, open_time, close_time, phone)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [category_id, name, description, history, address, latitude, longitude, open_time, close_time, phone]
+    [
+      category_id,
+      name,
+      description,
+      history,
+      address,
+      latitude,
+      longitude,
+      open_time,
+      close_time,
+      phone,
+    ]
   );
 
   return result.insertId;
@@ -103,12 +128,35 @@ export async function createPlace(placeData) {
  * Update place by ID
  */
 export async function updatePlace(id, placeData) {
-  const { category_id, name, description, history, address, latitude, longitude, open_time, close_time, phone } = placeData;
+  const {
+    category_id,
+    name,
+    description,
+    history,
+    address,
+    latitude,
+    longitude,
+    open_time,
+    close_time,
+    phone,
+  } = placeData;
 
   await pool.query(
     `UPDATE places SET category_id=?, name=?, description=?, history=?, address=?, latitude=?, longitude=?, open_time=?, close_time=?, phone=?
      WHERE place_id=?`,
-    [category_id, name, description, history, address, latitude, longitude, open_time, close_time, phone, id]
+    [
+      category_id,
+      name,
+      description,
+      history,
+      address,
+      latitude,
+      longitude,
+      open_time,
+      close_time,
+      phone,
+      id,
+    ]
   );
 }
 

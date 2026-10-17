@@ -57,7 +57,7 @@ export async function DELETE(request, { params }) {
 
     const { id } = await params;
     await placesService.deletePlace(id);
-    
+
     return NextResponse.json({ message: 'ลบสถานที่สำเร็จ' });
   } catch (error) {
     console.error('Delete place error:', error);

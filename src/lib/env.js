@@ -3,17 +3,12 @@
  * ตรวจสอบและ validate ค่า environment variables ที่จำเป็นก่อน app เริ่มทำงาน
  */
 
-const requiredEnvVars = [
-  'DB_HOST',
-  'DB_USER',
-  'DB_NAME',
-  'JWT_SECRET'
-];
+const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
 
 const optionalEnvVars = {
   DB_PORT: '3306',
   DB_PASSWORD: '',
-  GEMINI_API_KEY: ''
+  GEMINI_API_KEY: '',
 };
 
 /**
@@ -21,18 +16,18 @@ const optionalEnvVars = {
  */
 function validateEnv() {
   const missing = [];
-  
+
   for (const varName of requiredEnvVars) {
     if (!process.env[varName]) {
       missing.push(varName);
     }
   }
-  
+
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(', ')}\n` +
-      `Please check your .env file and ensure all required variables are set.\n` +
-      `See .env.example for reference.`
+        `Please check your .env file and ensure all required variables are set.\n` +
+        `See .env.example for reference.`
     );
   }
 }
@@ -61,10 +56,10 @@ export const env = {
   DB_USER: getEnvVar('DB_USER'),
   DB_PASSWORD: getEnvVar('DB_PASSWORD', optionalEnvVars.DB_PASSWORD),
   DB_NAME: getEnvVar('DB_NAME'),
-  
+
   // Authentication
   JWT_SECRET: getEnvVar('JWT_SECRET'),
-  
+
   // Optional APIs
   GEMINI_API_KEY: getEnvVar('GEMINI_API_KEY', optionalEnvVars.GEMINI_API_KEY),
 };

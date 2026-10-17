@@ -1,4 +1,4 @@
-﻿﻿﻿import Link from 'next/link';
+﻿import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PlaceCard from '@/components/PlaceCard';
@@ -12,7 +12,7 @@ export default async function HomePage() {
   const [categories, featuredPlaces, allPlaces] = await Promise.all([
     getCategories(),
     getPlacesSafe({ sort: 'popular', limit: 4 }),
-    getPlacesSafe({ limit: 200 })
+    getPlacesSafe({ limit: 200 }),
   ]);
 
   return (
@@ -25,15 +25,22 @@ export default async function HomePage() {
           <div className="section-heading">
             <div>
               <p className="eyebrow">02 / เก็บจุดหมายไว้ในใจ</p>
-              <h2 id="featured-title" className="mt-3 text-3xl md:text-4xl">หล่มสัก มีอะไรให้ค้นพบ</h2>
+              <h2 id="featured-title" className="mt-3 text-3xl md:text-4xl">
+                หล่มสัก มีอะไรให้ค้นพบ
+              </h2>
             </div>
-            <Link href="/places" className="text-primary font-medium inline-flex items-center gap-2">
+            <Link
+              href="/places"
+              className="text-primary font-medium inline-flex items-center gap-2"
+            >
               ดูสถานที่ทั้งหมด <ArrowRight size={18} />
             </Link>
           </div>
           {featuredPlaces.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredPlaces.map(place => <PlaceCard key={place.place_id} place={place} />)}
+              {featuredPlaces.map((place) => (
+                <PlaceCard key={place.place_id} place={place} />
+              ))}
             </div>
           ) : (
             <div className="border-y border-border py-10 text-content-secondary">

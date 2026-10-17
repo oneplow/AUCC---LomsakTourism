@@ -4,24 +4,422 @@ import { Plus, Search, Pencil, Trash2, X, MapPin, Eye, ImagePlus } from 'lucide-
 import Select from '@/components/Select';
 import useModalScrollLock from '@/hooks/useModalScrollLock';
 export default function AdminPlacesPage() {
-  const [places,setPlaces]=useState([]); const [categories,setCategories]=useState([]); const [loading,setLoading]=useState(true); const [search,setSearch]=useState(''); const [showForm,setShowForm]=useState(false); const [editingPlace,setEditingPlace]=useState(null);
-  const [form,setForm]=useState({name:'',category_id:'',description:'',history:'',address:'',latitude:'',longitude:'',open_time:'',close_time:'',phone:''}); const [images,setImages]=useState([]); const [newImageUrl,setNewImageUrl]=useState('');
-  useEffect(()=>{fetchPlaces();fetchCategories();},[]);
+  const [places, setPlaces] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editingPlace, setEditingPlace] = useState(null);
+  const [form, setForm] = useState({
+    name: '',
+    category_id: '',
+    description: '',
+    history: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    open_time: '',
+    close_time: '',
+    phone: '',
+  });
+  const [images, setImages] = useState([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
+  useEffect(() => {
+    fetchPlaces();
+    fetchCategories();
+  }, []);
   useModalScrollLock(showForm);
-  const fetchPlaces=async()=>{try{const r=await fetch('/api/places?limit=100');const d=await r.json();setPlaces(d.places||[]);}catch(err){console.error(err);}finally{setLoading(false);}};
-  const fetchCategories=async()=>{try{const r=await fetch('/api/categories');const d=await r.json();setCategories(d.categories||[]);}catch(err){console.error(err);}};
-  const fetchImages=async id=>{try{const r=await fetch(`/api/places/${id}/images`);const d=await r.json();setImages(d.images||[]);}catch(err){console.error(err);}};
-  const handleAddImage=async()=>{if(!newImageUrl.trim()||!editingPlace)return;try{await fetch(`/api/places/${editingPlace.place_id}/images`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:newImageUrl.trim()})});setNewImageUrl('');fetchImages(editingPlace.place_id);}catch(err){console.error(err);}};
-  const handleDeleteImage=async id=>{if(!editingPlace||!confirm('ยืนยันการลบรูปภาพ?'))return;try{await fetch(`/api/places/${editingPlace.place_id}/images?image_id=${id}`,{method:'DELETE'});fetchImages(editingPlace.place_id);}catch(err){console.error(err);}};
-  const resetForm=()=>{setForm({name:'',category_id:'',description:'',history:'',address:'',latitude:'',longitude:'',open_time:'',close_time:'',phone:''});setEditingPlace(null);setShowForm(false);setImages([]);setNewImageUrl('');};
-  const openEdit=p=>{setForm({name:p.name||'',category_id:p.category_id||'',description:p.description||'',history:p.history||'',address:p.address||'',latitude:p.latitude||'',longitude:p.longitude||'',open_time:p.open_time||'',close_time:p.close_time||'',phone:p.phone||''});setEditingPlace(p);setShowForm(true);fetchImages(p.place_id);};
-  const handleSubmit=async e=>{e.preventDefault();try{await fetch(editingPlace?`/api/places/${editingPlace.place_id}`:'/api/places',{method:editingPlace?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});fetchPlaces();resetForm();}catch(err){console.error(err);}};
-  const handleDelete=async id=>{if(!confirm('ยืนยันการลบสถานที่?'))return;try{await fetch(`/api/places/${id}`,{method:'DELETE'});fetchPlaces();}catch(err){console.error(err);}};
-  const filteredPlaces=places.filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
-  const inputClass='min-h-11 w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30';
-  const primary='inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90';
-  return <div className="space-y-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold text-content">จัดการสถานที่</h1><p className="mt-2 text-sm text-content-secondary">ดูแลข้อมูล รายละเอียด และรูปภาพของสถานที่ท่องเที่ยวทั้งหมด</p></div><button onClick={()=>{resetForm();setShowForm(true);}} className={primary}><Plus className="h-4 w-4"/>เพิ่มสถานที่</button></div>
-    <section className="overflow-hidden rounded-2xl border border-border bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4"><div className="relative w-full sm:max-w-sm"><Search className="absolute left-3 top-3 h-5 w-5 text-content-muted"/><input aria-label="ค้นหาสถานที่" type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="ค้นหาสถานที่" className={`${inputClass} pl-10`}/></div><span className="text-sm text-content-secondary">{filteredPlaces.length} สถานที่</span></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b border-border bg-surface-alt text-content-secondary"><tr><th className="px-5 py-3 text-left font-medium">สถานที่ / หมวดหมู่</th><th className="px-5 py-3 text-center font-medium">เข้าชม</th><th className="px-5 py-3 text-right font-medium">จัดการ</th></tr></thead><tbody className="divide-y divide-border">{filteredPlaces.map(p=><tr key={p.place_id} className="hover:bg-surface-alt"><td className="px-5 py-4"><div className="flex items-center gap-3"><MapPin className="h-5 w-5 shrink-0 text-primary"/><div><p className="font-semibold text-content">{p.name}</p><p className="mt-1 text-xs text-content-secondary">{p.category_name||'ยังไม่ระบุหมวดหมู่'}</p></div></div></td><td className="px-5 py-4 text-center text-content-secondary">{p.visit_count||0}</td><td className="px-5 py-4"><div className="flex justify-end gap-2"><button aria-label={`แก้ไข ${p.name}`} onClick={()=>openEdit(p)} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl border border-border px-3 text-primary hover:bg-white"><Pencil className="h-4 w-4"/><span className="hidden sm:inline">แก้ไข</span></button><button aria-label={`ลบ ${p.name}`} onClick={()=>handleDelete(p.place_id)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4"/></button></div></td></tr>)}{!filteredPlaces.length&&<tr><td colSpan={3} className="px-5 py-14 text-center text-content-secondary">{loading?'กำลังโหลดสถานที่...':search?'ไม่พบสถานที่ ลองเปลี่ยนคำค้น':'ยังไม่มีสถานที่ เริ่มต้นด้วยการเพิ่มสถานที่ใหม่'}</td></tr>}</tbody></table></div></section>
-    {showForm&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4"><section role="dialog" aria-modal="true" aria-labelledby="place-form-title" className="max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-white"><div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-white p-5"><div><h2 id="place-form-title" className="text-lg font-semibold text-content">{editingPlace?'แก้ไขสถานที่':'เพิ่มสถานที่ใหม่'}</h2><p className="mt-1 text-sm text-content-muted">ข้อมูลสำหรับแสดงให้นักท่องเที่ยว</p></div><button aria-label="ปิดแบบฟอร์มสถานที่" onClick={resetForm} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-content-secondary hover:bg-surface-alt"><X className="h-5 w-5"/></button></div><form onSubmit={handleSubmit} className="space-y-6 p-5"><fieldset className="grid gap-4 sm:grid-cols-2"><legend className="mb-4 font-semibold text-content">ข้อมูลสถานที่</legend><label className="block text-sm text-content-secondary sm:col-span-2">ชื่อสถานที่ *<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className={`${inputClass} mt-2`}/></label><div className="block text-sm text-content-secondary">หมวดหมู่<Select label="หมวดหมู่สถานที่" value={form.category_id} onChange={category_id=>setForm({...form,category_id})} placeholder="-- เลือก --" className="mt-2" searchable searchPlaceholder="ค้นหาหมวดหมู่…" emptyMessage="ไม่พบหมวดหมู่ที่ตรงกับคำค้น" options={[{value:'',label:'-- เลือก --'},...categories.map(c=>({value:c.category_id,label:c.name}))]}/></div><label className="block text-sm text-content-secondary">โทรศัพท์<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} className={`${inputClass} mt-2`}/></label><label className="block text-sm text-content-secondary sm:col-span-2">ที่อยู่<input value={form.address} onChange={e=>setForm({...form,address:e.target.value})} className={`${inputClass} mt-2`}/></label>{[['latitude','ละติจูด','number'],['longitude','ลองจิจูด','number'],['open_time','เวลาเปิด','time'],['close_time','เวลาปิด','time']].map(([key,label,type])=><label key={key} className="block text-sm text-content-secondary">{label}<input type={type} step={type==='number'?'any':undefined} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className={`${inputClass} mt-2`}/></label>)}{[['description','รายละเอียด'],['history','ประวัติ']].map(([key,label])=><label key={key} className="block text-sm text-content-secondary sm:col-span-2">{label}<textarea rows={3} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className={`${inputClass} mt-2`}/></label>)}</fieldset><section className="border-t border-border pt-5"><h3 className="mb-4 flex items-center gap-2 font-semibold text-content"><ImagePlus className="h-5 w-5 text-primary"/>รูปภาพสถานที่</h3>{editingPlace?<><div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{images.map(img=><div key={img.image_id} className="relative aspect-video overflow-hidden rounded-xl border border-border bg-surface-alt"><img src={img.image_url} alt="รูปภาพสถานที่" className="h-full w-full object-cover" onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/><div className="hidden h-full w-full items-center justify-center text-xs text-content-muted">โหลดรูปไม่ได้</div><button aria-label="ลบรูปภาพ" type="button" onClick={()=>handleDeleteImage(img.image_id)} className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-xl bg-white text-red-600"><Trash2 className="h-4 w-4"/></button></div>)}</div><div className="flex flex-col gap-2 sm:flex-row"><input aria-label="URL รูปภาพ" type="url" value={newImageUrl} onChange={e=>setNewImageUrl(e.target.value)} placeholder="https://... URL รูปภาพ" className={inputClass}/><button type="button" onClick={handleAddImage} className={`${primary} shrink-0`}><Plus className="h-4 w-4"/>เพิ่มรูป</button></div></>:<p className="rounded-xl bg-surface-alt p-4 text-sm text-content-secondary">สามารถเพิ่มรูปภาพได้หลังจากบันทึกสถานที่แล้ว</p>}</section><div className="flex flex-wrap justify-end gap-3 border-t border-border pt-5"><button type="button" onClick={resetForm} className="min-h-11 rounded-xl border border-border px-5 text-sm text-content-secondary hover:bg-surface-alt">ยกเลิก</button><button type="submit" className={primary}>{editingPlace?'บันทึกการแก้ไข':'เพิ่มสถานที่'}</button></div></form></section></div>}
-  </div>;
+  const fetchPlaces = async () => {
+    try {
+      const r = await fetch('/api/places?limit=100');
+      const d = await r.json();
+      setPlaces(d.places || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const fetchCategories = async () => {
+    try {
+      const r = await fetch('/api/categories');
+      const d = await r.json();
+      setCategories(d.categories || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const fetchImages = async (id) => {
+    try {
+      const r = await fetch(`/api/places/${id}/images`);
+      const d = await r.json();
+      setImages(d.images || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const handleAddImage = async () => {
+    if (!newImageUrl.trim() || !editingPlace) return;
+    try {
+      await fetch(`/api/places/${editingPlace.place_id}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: newImageUrl.trim() }),
+      });
+      setNewImageUrl('');
+      fetchImages(editingPlace.place_id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const handleDeleteImage = async (id) => {
+    if (!editingPlace || !confirm('ยืนยันการลบรูปภาพ?')) return;
+    try {
+      await fetch(`/api/places/${editingPlace.place_id}/images?image_id=${id}`, {
+        method: 'DELETE',
+      });
+      fetchImages(editingPlace.place_id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const resetForm = () => {
+    setForm({
+      name: '',
+      category_id: '',
+      description: '',
+      history: '',
+      address: '',
+      latitude: '',
+      longitude: '',
+      open_time: '',
+      close_time: '',
+      phone: '',
+    });
+    setEditingPlace(null);
+    setShowForm(false);
+    setImages([]);
+    setNewImageUrl('');
+  };
+  const openEdit = (p) => {
+    setForm({
+      name: p.name || '',
+      category_id: p.category_id || '',
+      description: p.description || '',
+      history: p.history || '',
+      address: p.address || '',
+      latitude: p.latitude || '',
+      longitude: p.longitude || '',
+      open_time: p.open_time || '',
+      close_time: p.close_time || '',
+      phone: p.phone || '',
+    });
+    setEditingPlace(p);
+    setShowForm(true);
+    fetchImages(p.place_id);
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await fetch(editingPlace ? `/api/places/${editingPlace.place_id}` : '/api/places', {
+        method: editingPlace ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      fetchPlaces();
+      resetForm();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const handleDelete = async (id) => {
+    if (!confirm('ยืนยันการลบสถานที่?')) return;
+    try {
+      await fetch(`/api/places/${id}`, { method: 'DELETE' });
+      fetchPlaces();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const filteredPlaces = places.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const inputClass =
+    'min-h-11 w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30';
+  const primary =
+    'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90';
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-content">จัดการสถานที่</h1>
+          <p className="mt-2 text-sm text-content-secondary">
+            ดูแลข้อมูล รายละเอียด และรูปภาพของสถานที่ท่องเที่ยวทั้งหมด
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+          className={primary}
+        >
+          <Plus className="h-4 w-4" />
+          เพิ่มสถานที่
+        </button>
+      </div>
+      <section className="overflow-hidden rounded-2xl border border-border bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-3 h-5 w-5 text-content-muted" />
+            <input
+              aria-label="ค้นหาสถานที่"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ค้นหาสถานที่"
+              className={`${inputClass} pl-10`}
+            />
+          </div>
+          <span className="text-sm text-content-secondary">{filteredPlaces.length} สถานที่</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-surface-alt text-content-secondary">
+              <tr>
+                <th className="px-5 py-3 text-left font-medium">สถานที่ / หมวดหมู่</th>
+                <th className="px-5 py-3 text-center font-medium">เข้าชม</th>
+                <th className="px-5 py-3 text-right font-medium">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredPlaces.map((p) => (
+                <tr key={p.place_id} className="hover:bg-surface-alt">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="h-5 w-5 shrink-0 text-primary" />
+                      <div>
+                        <p className="font-semibold text-content">{p.name}</p>
+                        <p className="mt-1 text-xs text-content-secondary">
+                          {p.category_name || 'ยังไม่ระบุหมวดหมู่'}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-center text-content-secondary">
+                    {p.visit_count || 0}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        aria-label={`แก้ไข ${p.name}`}
+                        onClick={() => openEdit(p)}
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl border border-border px-3 text-primary hover:bg-white"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span className="hidden sm:inline">แก้ไข</span>
+                      </button>
+                      <button
+                        aria-label={`ลบ ${p.name}`}
+                        onClick={() => handleDelete(p.place_id)}
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!filteredPlaces.length && (
+                <tr>
+                  <td colSpan={3} className="px-5 py-14 text-center text-content-secondary">
+                    {loading
+                      ? 'กำลังโหลดสถานที่...'
+                      : search
+                        ? 'ไม่พบสถานที่ ลองเปลี่ยนคำค้น'
+                        : 'ยังไม่มีสถานที่ เริ่มต้นด้วยการเพิ่มสถานที่ใหม่'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="place-form-title"
+            className="max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-white"
+          >
+            <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border bg-white p-5">
+              <div>
+                <h2 id="place-form-title" className="text-lg font-semibold text-content">
+                  {editingPlace ? 'แก้ไขสถานที่' : 'เพิ่มสถานที่ใหม่'}
+                </h2>
+                <p className="mt-1 text-sm text-content-muted">ข้อมูลสำหรับแสดงให้นักท่องเที่ยว</p>
+              </div>
+              <button
+                aria-label="ปิดแบบฟอร์มสถานที่"
+                onClick={resetForm}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-content-secondary hover:bg-surface-alt"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-6 p-5">
+              <fieldset className="grid gap-4 sm:grid-cols-2">
+                <legend className="mb-4 font-semibold text-content">ข้อมูลสถานที่</legend>
+                <label className="block text-sm text-content-secondary sm:col-span-2">
+                  ชื่อสถานที่ *
+                  <input
+                    required
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className={`${inputClass} mt-2`}
+                  />
+                </label>
+                <div className="block text-sm text-content-secondary">
+                  หมวดหมู่
+                  <Select
+                    label="หมวดหมู่สถานที่"
+                    value={form.category_id}
+                    onChange={(category_id) => setForm({ ...form, category_id })}
+                    placeholder="-- เลือก --"
+                    className="mt-2"
+                    searchable
+                    searchPlaceholder="ค้นหาหมวดหมู่…"
+                    emptyMessage="ไม่พบหมวดหมู่ที่ตรงกับคำค้น"
+                    options={[
+                      { value: '', label: '-- เลือก --' },
+                      ...categories.map((c) => ({ value: c.category_id, label: c.name })),
+                    ]}
+                  />
+                </div>
+                <label className="block text-sm text-content-secondary">
+                  โทรศัพท์
+                  <input
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className={`${inputClass} mt-2`}
+                  />
+                </label>
+                <label className="block text-sm text-content-secondary sm:col-span-2">
+                  ที่อยู่
+                  <input
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    className={`${inputClass} mt-2`}
+                  />
+                </label>
+                {[
+                  ['latitude', 'ละติจูด', 'number'],
+                  ['longitude', 'ลองจิจูด', 'number'],
+                  ['open_time', 'เวลาเปิด', 'time'],
+                  ['close_time', 'เวลาปิด', 'time'],
+                ].map(([key, label, type]) => (
+                  <label key={key} className="block text-sm text-content-secondary">
+                    {label}
+                    <input
+                      type={type}
+                      step={type === 'number' ? 'any' : undefined}
+                      value={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      className={`${inputClass} mt-2`}
+                    />
+                  </label>
+                ))}
+                {[
+                  ['description', 'รายละเอียด'],
+                  ['history', 'ประวัติ'],
+                ].map(([key, label]) => (
+                  <label key={key} className="block text-sm text-content-secondary sm:col-span-2">
+                    {label}
+                    <textarea
+                      rows={3}
+                      value={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      className={`${inputClass} mt-2`}
+                    />
+                  </label>
+                ))}
+              </fieldset>
+              <section className="border-t border-border pt-5">
+                <h3 className="mb-4 flex items-center gap-2 font-semibold text-content">
+                  <ImagePlus className="h-5 w-5 text-primary" />
+                  รูปภาพสถานที่
+                </h3>
+                {editingPlace ? (
+                  <>
+                    <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {images.map((img) => (
+                        <div
+                          key={img.image_id}
+                          className="relative aspect-video overflow-hidden rounded-xl border border-border bg-surface-alt"
+                        >
+                          <img
+                            src={img.image_url}
+                            alt="รูปภาพสถานที่"
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden h-full w-full items-center justify-center text-xs text-content-muted">
+                            โหลดรูปไม่ได้
+                          </div>
+                          <button
+                            aria-label="ลบรูปภาพ"
+                            type="button"
+                            onClick={() => handleDeleteImage(img.image_id)}
+                            className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-xl bg-white text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        aria-label="URL รูปภาพ"
+                        type="url"
+                        value={newImageUrl}
+                        onChange={(e) => setNewImageUrl(e.target.value)}
+                        placeholder="https://... URL รูปภาพ"
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddImage}
+                        className={`${primary} shrink-0`}
+                      >
+                        <Plus className="h-4 w-4" />
+                        เพิ่มรูป
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="rounded-xl bg-surface-alt p-4 text-sm text-content-secondary">
+                    สามารถเพิ่มรูปภาพได้หลังจากบันทึกสถานที่แล้ว
+                  </p>
+                )}
+              </section>
+              <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-5">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="min-h-11 rounded-xl border border-border px-5 text-sm text-content-secondary hover:bg-surface-alt"
+                >
+                  ยกเลิก
+                </button>
+                <button type="submit" className={primary}>
+                  {editingPlace ? 'บันทึกการแก้ไข' : 'เพิ่มสถานที่'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }

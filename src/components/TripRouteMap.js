@@ -1,7 +1,16 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-const MARKER_COLORS = ['#2d6a4f', '#e76f51', '#264653', '#2a9d8f', '#6d28d9', '#dc2626', '#e9c46a', '#f4a261'];
+const MARKER_COLORS = [
+  '#2d6a4f',
+  '#e76f51',
+  '#264653',
+  '#2a9d8f',
+  '#6d28d9',
+  '#dc2626',
+  '#e9c46a',
+  '#f4a261',
+];
 
 /**
  * Groups markers into clusters where any two members are within THRESHOLD of each other,
@@ -48,7 +57,7 @@ function buildClusters(places, threshold = 0.003) {
  * We use an adaptive radius based on cluster size.
  */
 function computeDisplayCoords(places) {
-  const display = places.map(p => ({ lat: p.lat, lng: p.lng }));
+  const display = places.map((p) => ({ lat: p.lat, lng: p.lng }));
   const clusters = buildClusters(places, 0.003); // ~300m
 
   for (const cluster of clusters) {
@@ -84,7 +93,9 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
     setReady(true);
     return () => {
       if (mapRef.current) {
-        try { mapRef.current.remove(); } catch (e) { }
+        try {
+          mapRef.current.remove();
+        } catch (e) {}
         mapRef.current = null;
       }
     };
@@ -94,7 +105,9 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
     if (!ready || !containerRef.current || places.length === 0) return;
 
     if (mapRef.current) {
-      try { mapRef.current.remove(); } catch (e) { }
+      try {
+        mapRef.current.remove();
+      } catch (e) {}
       mapRef.current = null;
     }
     if (containerRef.current._leaflet_id) {
@@ -116,21 +129,29 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
 
         // Google Maps tile layers
         const googleRoad = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-          attribution: '&copy; Google Maps', maxZoom: 20,
+          attribution: '&copy; Google Maps',
+          maxZoom: 20,
         });
-        const googleSatellite = L.tileLayer('https://mt1.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-          attribution: '&copy; Google Maps', maxZoom: 20,
-        });
+        const googleSatellite = L.tileLayer(
+          'https://mt1.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
+          {
+            attribution: '&copy; Google Maps',
+            maxZoom: 20,
+          }
+        );
         const googleTerrain = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
-          attribution: '&copy; Google Maps', maxZoom: 20,
+          attribution: '&copy; Google Maps',
+          maxZoom: 20,
         });
 
         googleRoad.addTo(map);
-        L.control.layers(
-          { 'แผนที่ถนน': googleRoad, 'ดาวเทียม': googleSatellite, 'ภูมิประเทศ': googleTerrain },
-          {},
-          { position: 'topright' }
-        ).addTo(map);
+        L.control
+          .layers(
+            { แผนที่ถนน: googleRoad, ดาวเทียม: googleSatellite, ภูมิประเทศ: googleTerrain },
+            {},
+            { position: 'topright' }
+          )
+          .addTo(map);
 
         const bounds = [];
 
@@ -139,7 +160,8 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
           const userIcon = L.divIcon({
             className: 'user-loc',
             html: `<div style="width:16px;height:16px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 5px rgba(66,133,244,0.2),0 2px 4px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [16, 16], iconAnchor: [8, 8],
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
           });
           L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 2000 })
             .addTo(map)
@@ -149,7 +171,8 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
 
         // Only valid coordinates
         const validPlaces = places.filter(
-          p => typeof p.lat === 'number' && typeof p.lng === 'number' && !isNaN(p.lat) && !isNaN(p.lng)
+          (p) =>
+            typeof p.lat === 'number' && typeof p.lng === 'number' && !isNaN(p.lat) && !isNaN(p.lng)
         );
 
         // Compute spread-out display positions
@@ -232,7 +255,7 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
           });
           div.innerHTML = html;
 
-          div.querySelectorAll('.map-legend-clickable').forEach(el => {
+          div.querySelectorAll('.map-legend-clickable').forEach((el) => {
             el.addEventListener('click', (e) => {
               e.stopPropagation();
               const idx = parseInt(el.dataset.idx);
@@ -255,25 +278,53 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
         if (userLocation && userLocation.lat && userLocation.lng) {
           latLngs.push([userLocation.lat, userLocation.lng]);
         }
-        validPlaces.forEach(p => latLngs.push([p.lat, p.lng]));
+        validPlaces.forEach((p) => latLngs.push([p.lat, p.lng]));
 
         if (latLngs.length > 1) {
           try {
-            const coordsString = latLngs.map(ll => `${ll[1]},${ll[0]}`).join(';');
+            const coordsString = latLngs.map((ll) => `${ll[1]},${ll[0]}`).join(';');
             const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
             const res = await fetch(osrmUrl);
             const data = await res.json();
 
             if (data.code === 'Ok' && data.routes?.length > 0) {
               const geojson = data.routes[0].geometry;
-              L.geoJSON(geojson, { style: { color: '#2d6a4f', weight: 7, opacity: 0.18, lineCap: 'round', lineJoin: 'round' } }).addTo(map);
-              L.geoJSON(geojson, { style: { color: '#2d6a4f', weight: 3, opacity: 0.9, lineCap: 'round', lineJoin: 'round' } }).addTo(map);
+              L.geoJSON(geojson, {
+                style: {
+                  color: '#2d6a4f',
+                  weight: 7,
+                  opacity: 0.18,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                },
+              }).addTo(map);
+              L.geoJSON(geojson, {
+                style: {
+                  color: '#2d6a4f',
+                  weight: 3,
+                  opacity: 0.9,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                },
+              }).addTo(map);
             } else {
               throw new Error('OSRM no route');
             }
           } catch {
-            L.polyline(latLngs, { color: '#2d6a4f', weight: 7, opacity: 0.18, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-            L.polyline(latLngs, { color: '#2d6a4f', weight: 3, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+            L.polyline(latLngs, {
+              color: '#2d6a4f',
+              weight: 7,
+              opacity: 0.18,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }).addTo(map);
+            L.polyline(latLngs, {
+              color: '#2d6a4f',
+              weight: 3,
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }).addTo(map);
           }
         }
 
@@ -281,7 +332,10 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
           map.fitBounds(bounds, { padding: [60, 60] });
         }
 
-        if (cancelled) { map.remove(); mapRef.current = null; }
+        if (cancelled) {
+          map.remove();
+          mapRef.current = null;
+        }
       } catch (e) {
         console.warn('TripRouteMap error:', e.message);
       }
@@ -290,7 +344,12 @@ export default function TripRouteMap({ places = [], userLocation = null, classNa
     initMap();
     return () => {
       cancelled = true;
-      if (mapRef.current) { try { mapRef.current.remove(); } catch (e) { } mapRef.current = null; }
+      if (mapRef.current) {
+        try {
+          mapRef.current.remove();
+        } catch (e) {}
+        mapRef.current = null;
+      }
     };
   }, [ready, places, userLocation]);
 

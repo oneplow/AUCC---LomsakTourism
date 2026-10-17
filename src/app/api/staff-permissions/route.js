@@ -44,10 +44,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'กรุณาระบุ user_id และ place_id' }, { status: 400 });
     }
 
-    await pool.query(
-      'INSERT IGNORE INTO staff_permissions (user_id, place_id) VALUES (?, ?)',
-      [user_id, place_id]
-    );
+    await pool.query('INSERT IGNORE INTO staff_permissions (user_id, place_id) VALUES (?, ?)', [
+      user_id,
+      place_id,
+    ]);
 
     return NextResponse.json({ message: 'กำหนดสิทธิ์สำเร็จ' }, { status: 201 });
   } catch (error) {

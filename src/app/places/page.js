@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export default async function PlacesPage() {
   const [places, categories] = await Promise.all([
     getPlacesSafe({ sort: 'newest', limit: 50 }),
-    getCategories()
+    getCategories(),
   ]);
 
   return (
@@ -22,15 +22,20 @@ export default async function PlacesPage() {
             <div className="pt-3">
               <p className="eyebrow">คู่มือการเดินทาง / หล่มสัก</p>
               <h1 className="mt-4 text-2xl leading-snug lg:text-4xl xl:text-5xl">
-                จุดหมายใหม่<br className="hidden lg:block" />
+                จุดหมายใหม่
+                <br className="hidden lg:block" />
                 <span className="text-primary">เรื่องราวที่รอคุณอยู่</span>
               </h1>
             </div>
             <div className="lg:pt-3">
               <p className="leading-8 text-content-secondary">
-                จากธรรมชาติอันเงียบสงบ สู่เสน่ห์ของชุมชน เลือกสถานที่ที่อยากไป แล้วเก็บเป็นแรงบันดาลใจให้ทริปถัดไป
+                จากธรรมชาติอันเงียบสงบ สู่เสน่ห์ของชุมชน เลือกสถานที่ที่อยากไป
+                แล้วเก็บเป็นแรงบันดาลใจให้ทริปถัดไป
               </p>
-              <Link href="/#planner" className="mt-5 inline-flex items-center gap-2 font-medium text-primary">
+              <Link
+                href="/#planner"
+                className="mt-5 inline-flex items-center gap-2 font-medium text-primary"
+              >
                 นำไอเดียไปวางแผนทริป <ArrowUpRight size={18} />
               </Link>
             </div>

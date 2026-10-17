@@ -1,9 +1,9 @@
 /**
  * MySQL Database Connection Pool
- * 
+ *
  * This module creates and exports a MySQL connection pool using mysql2/promise.
  * The pool is stored globally to persist across hot-reloads during development.
- * 
+ *
  * Configuration:
  * - host: DB_HOST environment variable (default: localhost)
  * - port: DB_PORT environment variable (default: 3306)
@@ -14,10 +14,10 @@
  * - waitForConnections: Queue requests when all connections are busy
  * - queueLimit: Unlimited queue size
  * - enableKeepAlive: Maintain connections to prevent timeouts
- * 
+ *
  * @example
  * import pool from '@/lib/db';
- * 
+ *
  * const [rows] = await pool.query('SELECT * FROM places WHERE place_id = ?', [id]);
  */
 import mysql from 'mysql2/promise';

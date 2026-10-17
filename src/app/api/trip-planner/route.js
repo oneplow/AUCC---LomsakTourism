@@ -3,33 +3,38 @@ import pool from '@/lib/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // สมมติฐานการเดินทางในพื้นที่ภูเขา/ชนบท
-const ROAD_FACTOR = 1.4;      // ระยะถนนจริง ≈ ระยะเส้นตรง × 1.4
-const AVG_SPEED_KMH = 45;     // ความเร็วเฉลี่ยรวมทางขึ้นเขา
-const PARKING_MIN = 5;        // เวลาจอดรถ/เดินเข้าสถานที่
-const FUEL_THB_PER_KM = 3;    // ค่าน้ำมันรถยนต์โดยประมาณ
+const ROAD_FACTOR = 1.4; // ระยะถนนจริง ≈ ระยะเส้นตรง × 1.4
+const AVG_SPEED_KMH = 45; // ความเร็วเฉลี่ยรวมทางขึ้นเขา
+const PARKING_MIN = 5; // เวลาจอดรถ/เดินเข้าสถานที่
+const FUEL_THB_PER_KM = 3; // ค่าน้ำมันรถยนต์โดยประมาณ
 const FALLBACK_TRAVEL_MIN = 20;
 
 const haversine = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-const hasCoords = p => p && Number.isFinite(p.lat) && Number.isFinite(p.lng);
-const roadKm = (a, b) => (hasCoords(a) && hasCoords(b) ? haversine(a.lat, a.lng, b.lat, b.lng) * ROAD_FACTOR : null);
-const travelMin = km => (km === null ? FALLBACK_TRAVEL_MIN : Math.round(km / AVG_SPEED_KMH * 60) + PARKING_MIN);
+const hasCoords = (p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lng);
+const roadKm = (a, b) =>
+  hasCoords(a) && hasCoords(b) ? haversine(a.lat, a.lng, b.lat, b.lng) * ROAD_FACTOR : null;
+const travelMin = (km) =>
+  km === null ? FALLBACK_TRAVEL_MIN : Math.round((km / AVG_SPEED_KMH) * 60) + PARKING_MIN;
 
-const toMin = t => {
+const toMin = (t) => {
   if (!t) return null;
   const [h, m] = String(t).split(':').map(Number);
   return Number.isFinite(h) ? h * 60 + (m || 0) : null;
 };
-const toHHMM = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const toHHMM = (m) =>
+  `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
-const isLodging = cat => /ที่พัก|รีสอร์ท|โรงแรม/.test(cat || '');
-const visitMinutes = cat => {
+const isLodging = (cat) => /ที่พัก|รีสอร์ท|โรงแรม/.test(cat || '');
+const visitMinutes = (cat) => {
   if (/วัด|ศาสน/.test(cat)) return 45;
   if (/น้ำตก|ธรรมชาติ/.test(cat)) return 90;
   if (/ชมวิว/.test(cat)) return 60;
@@ -37,14 +42,14 @@ const visitMinutes = cat => {
   if (/เรียนรู้|พิพิธ/.test(cat)) return 60;
   return 60;
 };
-const toNumber = v => {
+const toNumber = (v) => {
   const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, ''));
   return Number.isFinite(n) ? Math.round(n) : 0;
 };
 
 // คำนวณตารางเวลาจริงจากลำดับที่ AI เลือก: เวลาเดินทาง, รอเปิด, ตัดกิจกรรมที่เกินเวลา/ปิดแล้ว
 function buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd) {
-  const byId = Object.fromEntries(candidates.map(c => [c.id, c]));
+  const byId = Object.fromEntries(candidates.map((c) => [c.id, c]));
   const used = new Set();
   const warnings = [];
   let current = startPoint;
@@ -93,7 +98,9 @@ function buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd) {
           cost: `${cost} บาท`,
           tips: item.tips || '',
           travel: travel ? `เดินทาง ${travel} นาที${km ? ` · ${km.toFixed(1)} กม.` : ''}` : '',
-          lat: place.lat, lng: place.lng, type: 'lodging',
+          lat: place.lat,
+          lng: place.lng,
+          type: 'lodging',
         });
         current = place;
         clock = arrive;
@@ -103,10 +110,13 @@ function buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd) {
       if (place.open !== null && arrive < place.open) arrive = place.open; // รอสถานที่เปิด
       const duration = Math.max(20, Math.min(toNumber(item.duration_min) || place.visit, 240));
       const leave = arrive + duration;
-      const closeLimit = place.close !== null && place.close > (place.open ?? 0) ? place.close : 24 * 60;
+      const closeLimit =
+        place.close !== null && place.close > (place.open ?? 0) ? place.close : 24 * 60;
 
       if (leave > dayEnd || leave > closeLimit) {
-        warnings.push(`ตัด "${place.name}" ออกจากวันที่ ${dayIdx + 1} เพราะเวลาไม่พอหรือสถานที่ปิดก่อน`);
+        warnings.push(
+          `ตัด "${place.name}" ออกจากวันที่ ${dayIdx + 1} เพราะเวลาไม่พอหรือสถานที่ปิดก่อน`
+        );
         continue;
       }
 
@@ -121,7 +131,9 @@ function buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd) {
         cost: `${cost} บาท`,
         tips: item.tips || '',
         travel: travel ? `เดินทาง ${travel} นาที${km ? ` · ${km.toFixed(1)} กม.` : ''}` : '',
-        lat: place.lat, lng: place.lng, type: 'visit',
+        lat: place.lat,
+        lng: place.lng,
+        type: 'visit',
       });
       current = place;
       clock = leave;
@@ -148,7 +160,10 @@ export async function POST(request) {
     const dayStart = toMin(start_time) ?? 8 * 60;
     const dayEnd = toMin(end_time) ?? 18 * 60;
     if (dayEnd - dayStart < 120) {
-      return NextResponse.json({ error: 'ช่วงเวลาเที่ยวต่อวันต้องไม่น้อยกว่า 2 ชั่วโมง' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'ช่วงเวลาเที่ยวต่อวันต้องไม่น้อยกว่า 2 ชั่วโมง' },
+        { status: 400 }
+      );
     }
 
     let placesQuery = `
@@ -163,16 +178,19 @@ export async function POST(request) {
     }
     const [rows] = await pool.query(placesQuery, queryParams);
 
-    const startPoint = user_lat && user_lng ? { lat: parseFloat(user_lat), lng: parseFloat(user_lng) } : null;
+    const startPoint =
+      user_lat && user_lng ? { lat: parseFloat(user_lat), lng: parseFloat(user_lng) } : null;
     const maxRadius = radius_km || 200;
 
-    let places = rows.map(r => {
-      const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
+    let places = rows.map((r) => {
+      const lat = parseFloat(r.latitude),
+        lng = parseFloat(r.longitude);
       const p = {
         name: r.name,
         category: r.category_name || '',
         desc: (r.description || '').slice(0, 80),
-        lat, lng,
+        lat,
+        lng,
         open: toMin(r.open_time),
         close: toMin(r.close_time),
         visit: visitMinutes(r.category_name || ''),
@@ -183,7 +201,7 @@ export async function POST(request) {
 
     if (startPoint) {
       places = places
-        .filter(p => p.distFromStart !== null && p.distFromStart / ROAD_FACTOR <= maxRadius)
+        .filter((p) => p.distFromStart !== null && p.distFromStart / ROAD_FACTOR <= maxRadius)
         .sort((a, b) => a.distFromStart - b.distFromStart);
     }
 
@@ -194,8 +212,11 @@ export async function POST(request) {
           summary: `ไม่พบสถานที่ท่องเที่ยวภายในรัศมี ${maxRadius} กิโลเมตรจากจุดเริ่มต้นของคุณ กรุณาเพิ่มระยะทางแล้วลองใหม่อีกครั้ง`,
           total_budget: '-',
           days: [],
-          tips: ['ลองเพิ่มระยะทางในตัวเลื่อน (Slider) ให้มากขึ้น', 'หรือเปลี่ยนจุดเริ่มต้นให้ใกล้แหล่งท่องเที่ยวมากขึ้น']
-        }
+          tips: [
+            'ลองเพิ่มระยะทางในตัวเลื่อน (Slider) ให้มากขึ้น',
+            'หรือเปลี่ยนจุดเริ่มต้นให้ใกล้แหล่งท่องเที่ยวมากขึ้น',
+          ],
+        },
       });
     }
 
@@ -217,36 +238,44 @@ export async function POST(request) {
             place: p.name,
             description: p.desc || 'เที่ยวชมสถานที่',
             cost: `${Math.round(parseInt(budget) / parseInt(days) / 3)} บาท`,
-            tips: 'ควรไปช่วงเช้าจะได้บรรยากาศดี'
-          }))
+            tips: 'ควรไปช่วงเช้าจะได้บรรยากาศดี',
+          })),
         })),
-        tips: ['เตรียมรองเท้าที่สวมใส่สบาย', 'พกน้ำดื่มให้เพียงพอ', 'ตรวจสอบสภาพอากาศก่อนเดินทาง']
+        tips: ['เตรียมรองเท้าที่สวมใส่สบาย', 'พกน้ำดื่มให้เพียงพอ', 'ตรวจสอบสภาพอากาศก่อนเดินทาง'],
       };
       await pool.query(
         'INSERT INTO trip_plans (days, budget, start_time, end_time, place_types, plan_result) VALUES (?, ?, ?, ?, ?, ?)',
         [days, budget, start_time, end_time, place_types?.join(','), JSON.stringify(mockPlan)]
       );
-      return NextResponse.json({ plan: mockPlan, note: 'กรุณาตั้งค่า GEMINI_API_KEY เพื่อใช้ AI จริง' });
+      return NextResponse.json({
+        plan: mockPlan,
+        note: 'กรุณาตั้งค่า GEMINI_API_KEY เพื่อใช้ AI จริง',
+      });
     }
 
     // ข้อมูลสถานที่ + ตารางเวลาเดินทาง (นาที) ที่ server คำนวณให้ AI ไม่ต้องเดาเอง
-    const placeLines = candidates.map(p => {
-      const hours = p.open !== null && p.close !== null ? `${toHHMM(p.open)}-${toHHMM(p.close)}` : 'unknown';
-      const fromStart = startPoint ? `|start→${travelMin(p.distFromStart)}m` : '';
-      const kind = isLodging(p.category) ? 'LODGING' : `visit~${p.visit}m`;
-      return `${p.id}|${p.name}|${p.category}|open ${hours}|${kind}${fromStart}`;
-    }).join('\n');
+    const placeLines = candidates
+      .map((p) => {
+        const hours =
+          p.open !== null && p.close !== null ? `${toHHMM(p.open)}-${toHHMM(p.close)}` : 'unknown';
+        const fromStart = startPoint ? `|start→${travelMin(p.distFromStart)}m` : '';
+        const kind = isLodging(p.category) ? 'LODGING' : `visit~${p.visit}m`;
+        return `${p.id}|${p.name}|${p.category}|open ${hours}|${kind}${fromStart}`;
+      })
+      .join('\n');
 
-    const matrix = candidates.map(a =>
-      `${a.id}:${candidates.map(b => (a === b ? 0 : travelMin(roadKm(a, b)))).join(',')}`
-    ).join('\n');
+    const matrix = candidates
+      .map(
+        (a) => `${a.id}:${candidates.map((b) => (a === b ? 0 : travelMin(roadKm(a, b)))).join(',')}`
+      )
+      .join('\n');
 
-    const hasLodging = candidates.some(p => isLodging(p.category));
+    const hasLodging = candidates.some((p) => isLodging(p.category));
     const dailyMinutes = dayEnd - dayStart;
 
     const prompt = `Plan a realistic ${days}-day car trip in Lomsak, Phetchabun, Thailand.
 Budget: ${budget} THB total for 1 traveler (fuel is calculated separately: ~${FUEL_THB_PER_KM} THB/km). Daily window: ${start_time}-${end_time} (${dailyMinutes} min).
-${startPoint ? 'Day 1 starts at the traveler\'s location (start→ = travel minutes from it).' : 'Start point unknown; begin day 1 at the most central place.'}
+${startPoint ? "Day 1 starts at the traveler's location (start→ = travel minutes from it)." : 'Start point unknown; begin day 1 at the most central place.'}
 
 Places (id|name|category|opening hours|type & suggested visit minutes):
 ${placeLines}
@@ -281,14 +310,25 @@ Return JSON only:
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       aiPlan = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
     } catch {
-      return NextResponse.json({ error: 'AI ตอบกลับในรูปแบบที่ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' }, { status: 502 });
+      return NextResponse.json(
+        { error: 'AI ตอบกลับในรูปแบบที่ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' },
+        { status: 502 }
+      );
     }
 
-    const { days: scheduledDays, warnings, transport, itemCost } = buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd);
+    const {
+      days: scheduledDays,
+      warnings,
+      transport,
+      itemCost,
+    } = buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd);
     const total = transport + itemCost;
 
     const tips = [...(Array.isArray(aiPlan.tips) ? aiPlan.tips : [])];
-    if (total > budget) tips.unshift(`ค่าใช้จ่ายโดยประมาณ (${total.toLocaleString()} บาท) เกินงบที่ตั้งไว้ ${(total - budget).toLocaleString()} บาท`);
+    if (total > budget)
+      tips.unshift(
+        `ค่าใช้จ่ายโดยประมาณ (${total.toLocaleString()} บาท) เกินงบที่ตั้งไว้ ${(total - budget).toLocaleString()} บาท`
+      );
     tips.push(...warnings);
 
     const plan = {

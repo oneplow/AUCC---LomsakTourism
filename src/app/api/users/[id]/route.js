@@ -11,10 +11,12 @@ export async function PUT(request, { params }) {
     const { id } = await params;
     const { full_name, email, role } = await request.json();
 
-    await pool.query(
-      'UPDATE users SET full_name = ?, email = ?, role = ? WHERE user_id = ?',
-      [full_name, email, role, id]
-    );
+    await pool.query('UPDATE users SET full_name = ?, email = ?, role = ? WHERE user_id = ?', [
+      full_name,
+      email,
+      role,
+      id,
+    ]);
 
     return NextResponse.json({ message: 'อัปเดตผู้ใช้สำเร็จ' });
   } catch (error) {

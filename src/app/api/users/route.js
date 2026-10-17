@@ -39,7 +39,10 @@ export async function POST(request) {
       [username, hashedPassword, full_name, email, role || 'staff']
     );
 
-    return NextResponse.json({ message: 'สร้างผู้ใช้สำเร็จ', user_id: result.insertId }, { status: 201 });
+    return NextResponse.json(
+      { message: 'สร้างผู้ใช้สำเร็จ', user_id: result.insertId },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }

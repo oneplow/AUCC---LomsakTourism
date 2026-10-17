@@ -11,7 +11,9 @@ export default function MapView({ latitude, longitude, name, className = '' }) {
     setReady(true);
     return () => {
       if (mapRef.current) {
-        try { mapRef.current.remove(); } catch (e) {}
+        try {
+          mapRef.current.remove();
+        } catch (e) {}
         mapRef.current = null;
       }
     };
@@ -22,7 +24,9 @@ export default function MapView({ latitude, longitude, name, className = '' }) {
 
     // Ensure no previous map on this container
     if (mapRef.current) {
-      try { mapRef.current.remove(); } catch (e) {}
+      try {
+        mapRef.current.remove();
+      } catch (e) {}
       mapRef.current = null;
     }
 
@@ -72,7 +76,9 @@ export default function MapView({ latitude, longitude, name, className = '' }) {
     return () => {
       cancelled = true;
       if (mapRef.current) {
-        try { mapRef.current.remove(); } catch (e) {}
+        try {
+          mapRef.current.remove();
+        } catch (e) {}
         mapRef.current = null;
       }
     };
@@ -80,7 +86,9 @@ export default function MapView({ latitude, longitude, name, className = '' }) {
 
   if (!latitude || !longitude) {
     return (
-      <div className={`bg-surface-alt rounded-xl flex items-center justify-center text-content-muted ${className}`}>
+      <div
+        className={`bg-surface-alt rounded-xl flex items-center justify-center text-content-muted ${className}`}
+      >
         <p className="text-sm">ไม่มีข้อมูลพิกัด</p>
       </div>
     );

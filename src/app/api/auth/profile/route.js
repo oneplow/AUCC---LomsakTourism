@@ -16,7 +16,9 @@ export async function PUT(request) {
       if (!current_password) {
         return NextResponse.json({ error: 'กรุณาระบุรหัสผ่านปัจจุบัน' }, { status: 400 });
       }
-      const [rows] = await pool.query('SELECT password FROM users WHERE user_id = ?', [user.user_id]);
+      const [rows] = await pool.query('SELECT password FROM users WHERE user_id = ?', [
+        user.user_id,
+      ]);
       if (rows.length === 0) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
       const valid = await bcrypt.compare(current_password, rows[0].password);
@@ -24,14 +26,22 @@ export async function PUT(request) {
         return NextResponse.json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' }, { status: 400 });
       }
       if (new_password.length < 6) {
-        return NextResponse.json({ error: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' },
+          { status: 400 }
+        );
       }
       const hashed = await bcrypt.hash(new_password, 10);
-      await pool.query('UPDATE users SET full_name = ?, email = ?, password = ? WHERE user_id = ?',
-        [full_name || user.full_name, email || user.email, hashed, user.user_id]);
+      await pool.query(
+        'UPDATE users SET full_name = ?, email = ?, password = ? WHERE user_id = ?',
+        [full_name || user.full_name, email || user.email, hashed, user.user_id]
+      );
     } else {
-      await pool.query('UPDATE users SET full_name = ?, email = ? WHERE user_id = ?',
-        [full_name || user.full_name, email || user.email, user.user_id]);
+      await pool.query('UPDATE users SET full_name = ?, email = ? WHERE user_id = ?', [
+        full_name || user.full_name,
+        email || user.email,
+        user.user_id,
+      ]);
     }
 
     return NextResponse.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ' });

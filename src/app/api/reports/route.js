@@ -53,41 +53,56 @@ export async function GET(request) {
       const now = new Date();
       const year = Number(searchParams.get('year')) || now.getFullYear();
       const month = Number(searchParams.get('month')) || now.getMonth() + 1;
-      const staffJoin = user.role === 'staff' ? ' JOIN staff_permissions sp ON pv.place_id = sp.place_id AND sp.user_id = ?' : '';
+      const staffJoin =
+        user.role === 'staff'
+          ? ' JOIN staff_permissions sp ON pv.place_id = sp.place_id AND sp.user_id = ?'
+          : '';
       const staffParams = user.role === 'staff' ? [user.user_id] : [];
 
       if (type === 'daily_visits') {
-        const [rows] = await pool.query(`
+        const [rows] = await pool.query(
+          `
           SELECT DAY(pv.visited_at) AS day, COUNT(*) AS total, COUNT(DISTINCT pv.place_id) AS unique_places
           FROM place_visits pv${staffJoin}
           WHERE YEAR(pv.visited_at) = ? AND MONTH(pv.visited_at) = ?
           GROUP BY day
           ORDER BY day
-        `, [...staffParams, year, month]);
-        const [tripRows] = await pool.query(`
+        `,
+          [...staffParams, year, month]
+        );
+        const [tripRows] = await pool.query(
+          `
           SELECT DAY(created_at) AS day, COUNT(*) AS total
           FROM trip_plans
           WHERE YEAR(created_at) = ? AND MONTH(created_at) = ?
           GROUP BY day
           ORDER BY day
-        `, [year, month]);
+        `,
+          [year, month]
+        );
         return NextResponse.json({ data: rows, trips: tripRows, year, month });
       }
 
-      const [rows] = await pool.query(`
+      const [rows] = await pool.query(
+        `
         SELECT MONTH(pv.visited_at) AS month, COUNT(*) AS total
         FROM place_visits pv${staffJoin}
         WHERE YEAR(pv.visited_at) = ?
         GROUP BY month
         ORDER BY month
-      `, [...staffParams, year]);
-      const [tripRows] = await pool.query(`
+      `,
+        [...staffParams, year]
+      );
+      const [tripRows] = await pool.query(
+        `
         SELECT MONTH(created_at) AS month, COUNT(*) AS total
         FROM trip_plans
         WHERE YEAR(created_at) = ?
         GROUP BY month
         ORDER BY month
-      `, [year]);
+      `,
+        [year]
+      );
       return NextResponse.json({ data: rows, trips: tripRows, year });
     }
 
@@ -105,7 +120,7 @@ export async function GET(request) {
           trips: tripsCount[0].count,
           users: usersCount[0].count,
           categories: categoriesCount[0].count,
-        }
+        },
       });
     }
 

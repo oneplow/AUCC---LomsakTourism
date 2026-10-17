@@ -37,22 +37,22 @@ export default function Select({
   const searchRef = useRef(null);
   const reactId = useId();
   const listId = `${id || reactId}-listbox`;
-  const selected = options.find(option => String(option.value) === String(value)) || null;
+  const selected = options.find((option) => String(option.value) === String(value)) || null;
   const filtered = useMemo(() => {
     if (!searchable || !term.trim()) return options;
     const keyword = term.trim().toLowerCase();
-    return options.filter(option => String(option.label).toLowerCase().includes(keyword));
+    return options.filter((option) => String(option.label).toLowerCase().includes(keyword));
   }, [options, searchable, term]);
   const activeId = open && filtered[highlight] ? `${listId}-option-${highlight}` : undefined;
 
   const openPanel = () => {
     setTerm('');
-    const index = options.findIndex(option => String(option.value) === String(value));
+    const index = options.findIndex((option) => String(option.value) === String(value));
     setHighlight(index >= 0 ? index : 0);
     setOpen(true);
   };
 
-  const commit = option => {
+  const commit = (option) => {
     onChange?.(String(option.value));
     setOpen(false);
     buttonRef.current?.focus();
@@ -60,8 +60,9 @@ export default function Select({
 
   useEffect(() => {
     if (!open) return;
-    const isInside = target => rootRef.current?.contains(target) || panelRef.current?.contains(target);
-    const handleOutside = event => {
+    const isInside = (target) =>
+      rootRef.current?.contains(target) || panelRef.current?.contains(target);
+    const handleOutside = (event) => {
       if (!isInside(event.target)) setOpen(false);
     };
     document.addEventListener('pointerdown', handleOutside);
@@ -89,7 +90,9 @@ export default function Select({
         left: Math.max(leftEdge, Math.min(rect.left, rightEdge - width)),
         width,
         maxHeight: Math.min(320, dropUp ? above : below),
-        ...(dropUp ? { bottom: window.innerHeight - rect.top + 8 } : { top: Math.max(topEdge, rect.bottom + 8) }),
+        ...(dropUp
+          ? { bottom: window.innerHeight - rect.top + 8 }
+          : { top: Math.max(topEdge, rect.bottom + 8) }),
       });
     };
     updatePosition();
@@ -114,10 +117,11 @@ export default function Select({
     const listRect = list.getBoundingClientRect();
     const optionRect = option.getBoundingClientRect();
     if (optionRect.top < listRect.top) list.scrollTop -= listRect.top - optionRect.top;
-    else if (optionRect.bottom > listRect.bottom) list.scrollTop += optionRect.bottom - listRect.bottom;
+    else if (optionRect.bottom > listRect.bottom)
+      list.scrollTop += optionRect.bottom - listRect.bottom;
   }, [open, highlight, listId, filtered]);
 
-  const handleKeyDown = event => {
+  const handleKeyDown = (event) => {
     if (disabled || event.nativeEvent.isComposing) return;
     const editing = event.target === searchRef.current;
     if (!open) {
@@ -129,10 +133,10 @@ export default function Select({
     }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setHighlight(current => Math.min(current + 1, filtered.length - 1));
+      setHighlight((current) => Math.min(current + 1, filtered.length - 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setHighlight(current => Math.max(current - 1, 0));
+      setHighlight((current) => Math.max(current - 1, 0));
     } else if (event.key === 'Home' && !editing) {
       event.preventDefault();
       setHighlight(0);
@@ -173,60 +177,86 @@ export default function Select({
         <span className={`min-w-0 truncate ${selected ? '' : 'text-content-muted'}`}>
           {selected ? selected.label : placeholder}
         </span>
-        <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-content-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          aria-hidden="true"
+          className={`h-4 w-4 shrink-0 text-content-muted transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
 
-      {open && createPortal(
-        <div ref={panelRef} className="select-panel fixed z-[100] flex flex-col" style={position || undefined}>
-          {searchable && (
-            <div className="relative shrink-0 border-b border-border-light p-2">
-              <Search aria-hidden="true" className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
-              <input
-                ref={searchRef}
-                type="search"
-                role="combobox"
-                aria-expanded={open}
-                aria-controls={listId}
-                aria-autocomplete="list"
-                aria-activedescendant={activeId}
-                value={term}
-                onChange={event => {
-                  setTerm(event.target.value);
-                  setHighlight(0);
-                }}
-                placeholder={searchPlaceholder}
-                aria-label={`ค้นหา${label || 'ตัวเลือก'}`}
-                className="w-full rounded-lg bg-surface-alt py-2 pl-9 pr-3 text-sm text-content focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-              />
-            </div>
-          )}
-          {!filtered.length && <p role="status" className="overflow-y-auto px-3 py-6 text-center text-sm text-content-muted">{emptyMessage}</p>}
-          <ul id={listId} ref={listRef} role="listbox" aria-label={label} className="min-h-0 overflow-y-auto overscroll-contain p-1.5">
-            {filtered.map((option, index) => {
-              const isSelected = String(option.value) === String(value);
-              const isHighlighted = index === highlight;
-              return (
-                <li
-                  key={String(option.value)}
-                  id={`${listId}-option-${index}`}
-                  role="option"
-                  aria-selected={isSelected}
-                  onMouseDown={event => event.preventDefault()}
-                  onClick={() => commit(option)}
-                  onMouseEnter={() => setHighlight(index)}
-                  className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition ${
-                    isHighlighted ? 'bg-surface-alt text-primary' : 'text-content'
-                  } ${isSelected ? 'font-semibold' : ''}`}
-                >
-                  <span className="min-w-0 truncate">{option.label}</span>
-                  {isSelected && <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />}
-                </li>
-              );
-            })}
-          </ul>
-        </div>,
-        document.body,
-      )}
+      {open &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className="select-panel fixed z-[100] flex flex-col"
+            style={position || undefined}
+          >
+            {searchable && (
+              <div className="relative shrink-0 border-b border-border-light p-2">
+                <Search
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted"
+                />
+                <input
+                  ref={searchRef}
+                  type="search"
+                  role="combobox"
+                  aria-expanded={open}
+                  aria-controls={listId}
+                  aria-autocomplete="list"
+                  aria-activedescendant={activeId}
+                  value={term}
+                  onChange={(event) => {
+                    setTerm(event.target.value);
+                    setHighlight(0);
+                  }}
+                  placeholder={searchPlaceholder}
+                  aria-label={`ค้นหา${label || 'ตัวเลือก'}`}
+                  className="w-full rounded-lg bg-surface-alt py-2 pl-9 pr-3 text-sm text-content focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                />
+              </div>
+            )}
+            {!filtered.length && (
+              <p
+                role="status"
+                className="overflow-y-auto px-3 py-6 text-center text-sm text-content-muted"
+              >
+                {emptyMessage}
+              </p>
+            )}
+            <ul
+              id={listId}
+              ref={listRef}
+              role="listbox"
+              aria-label={label}
+              className="min-h-0 overflow-y-auto overscroll-contain p-1.5"
+            >
+              {filtered.map((option, index) => {
+                const isSelected = String(option.value) === String(value);
+                const isHighlighted = index === highlight;
+                return (
+                  <li
+                    key={String(option.value)}
+                    id={`${listId}-option-${index}`}
+                    role="option"
+                    aria-selected={isSelected}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => commit(option)}
+                    onMouseEnter={() => setHighlight(index)}
+                    className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isHighlighted ? 'bg-surface-alt text-primary' : 'text-content'
+                    } ${isSelected ? 'font-semibold' : ''}`}
+                  >
+                    <span className="min-w-0 truncate">{option.label}</span>
+                    {isSelected && (
+                      <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
