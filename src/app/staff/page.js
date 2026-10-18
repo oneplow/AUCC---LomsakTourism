@@ -9,16 +9,11 @@ export default function StaffDashboard() {
   }, []);
   const fetchData = async () => {
     try {
-      const me = await (await fetch('/api/auth/me')).json();
-      if (!me.user) return;
-      setUser(me.user);
-      const perms = await (await fetch(`/api/staff-permissions?user_id=${me.user.user_id}`)).json();
-      const details = await Promise.all(
-        (perms.permissions || []).map(
-          async (p) => (await (await fetch(`/api/places/${p.place_id}`)).json()).place
-        )
-      );
-      setPlaces(details.filter(Boolean));
+      // คำขอเดียว: ได้ทั้งข้อมูลผู้ใช้และสถานที่ที่รับผิดชอบ
+      const d = await (await fetch('/api/staff-permissions?detail=1')).json();
+      if (!d.user) return;
+      setUser(d.user);
+      setPlaces(d.places || []);
     } catch (err) {
       console.error(err);
     }

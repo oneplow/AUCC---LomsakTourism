@@ -6,7 +6,8 @@ import TripPlanner from '@/components/TripPlanner';
 import { ArrowRight } from 'lucide-react';
 import { getCategories, getPlacesSafe } from '@/lib/publicData';
 
-export const dynamic = 'force-dynamic';
+// เก็บหน้าไว้เป็น cache 60 วินาที (ISR) และสร้างใหม่ทันทีเมื่อแก้ข้อมูลสถานที่ (ดู revalidatePath ใน API)
+export const revalidate = 60;
 
 export default async function HomePage() {
   const [categories, featuredPlaces, allPlaces] = await Promise.all([

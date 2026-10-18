@@ -1,6 +1,7 @@
 ﻿import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import * as placesService from '@/services/placesService';
+import { revalidatePublicPages } from '@/lib/revalidatePublic';
 
 // GET all places (public) with search, filter, pagination
 export async function GET(request) {
@@ -37,6 +38,7 @@ export async function POST(request) {
     }
 
     const placeId = await placesService.createPlace(body);
+    revalidatePublicPages();
 
     return NextResponse.json({ message: 'เพิ่มสถานที่สำเร็จ', place_id: placeId }, { status: 201 });
   } catch (error) {

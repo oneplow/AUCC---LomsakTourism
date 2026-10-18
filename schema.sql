@@ -118,3 +118,16 @@ INSERT INTO place_images (place_id, image_url) VALUES
 -- ================================
 -- ALTER TABLE places ADD COLUMN open_days VARCHAR(20) NULL AFTER close_time;
 -- UPDATE places SET open_days = '6' WHERE name LIKE '%ถนนคนเดิน%';  -- ตัวอย่าง: เปิดเฉพาะวันเสาร์
+
+-- ================================
+-- Migration: ตารางสิทธิ์ staff (ฐานข้อมูลที่ users/places ใช้ INT UNSIGNED ต้องใช้ UNSIGNED ให้ตรงกัน ไม่งั้น FK สร้างไม่ได้)
+-- ================================
+-- CREATE TABLE IF NOT EXISTS staff_permissions (
+--   permission_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+--   user_id INT UNSIGNED NOT NULL,
+--   place_id INT UNSIGNED NOT NULL,
+--   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+--   FOREIGN KEY (place_id) REFERENCES places(place_id) ON DELETE CASCADE,
+--   UNIQUE KEY unique_user_place (user_id, place_id)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

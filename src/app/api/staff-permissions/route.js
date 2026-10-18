@@ -12,6 +12,22 @@ export async function GET(request) {
     // staff ดูได้เฉพาะสิทธิ์ของตัวเอง ส่วน admin ระบุ user_id ใครก็ได้
     const userId = auth.user.role === 'admin' ? searchParams.get('user_id') : auth.user.user_id;
 
+    // ?detail=1 → คืนข้อมูลสถานที่เต็มในคำขอเดียว (แทนการยิง /api/places/:id ทีละที่)
+    if (searchParams.get('detail') === '1' && userId) {
+      const [places] = await pool.query(
+        `SELECT p.*, c.name AS category_name,
+           (SELECT image_url FROM place_images WHERE place_id = p.place_id LIMIT 1) AS image_url,
+           (SELECT COUNT(*) FROM place_visits WHERE place_id = p.place_id) AS visit_count
+         FROM staff_permissions sp
+         JOIN places p ON sp.place_id = p.place_id
+         LEFT JOIN categories c ON p.category_id = c.category_id
+         WHERE sp.user_id = ?
+         ORDER BY sp.created_at DESC`,
+        [userId]
+      );
+      return NextResponse.json({ user: auth.user, places });
+    }
+
     let query = `
       SELECT sp.*, p.name as place_name, u.username, u.full_name
       FROM staff_permissions sp

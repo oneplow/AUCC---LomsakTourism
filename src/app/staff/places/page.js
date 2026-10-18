@@ -29,15 +29,9 @@ export default function StaffPlacesPage() {
     fetchCategories();
   }, []);
   const fetchMyPlaces = async () => {
-    const me = await (await fetch('/api/auth/me')).json();
-    if (!me.user) return;
-    const p = await (await fetch(`/api/staff-permissions?user_id=${me.user.user_id}`)).json();
-    const d = await Promise.all(
-      (p.permissions || []).map(
-        async (x) => (await (await fetch(`/api/places/${x.place_id}`)).json()).place
-      )
-    );
-    setPlaces(d.filter(Boolean));
+    // คำขอเดียวแทน me → permissions → places ทีละที่
+    const d = await (await fetch('/api/staff-permissions?detail=1')).json();
+    setPlaces(d.places || []);
   };
   const fetchCategories = async () => {
     const d = await (await fetch('/api/categories')).json();

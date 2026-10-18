@@ -51,8 +51,11 @@ export async function getPlaces({
   query += ` LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
-  const [places] = await pool.query(query, params);
-  const [countResult] = await pool.query(countQuery, countParams);
+  // ยิงสอง query พร้อมกัน ไม่ต้องรอกันทีละตัว
+  const [[places], [countResult]] = await Promise.all([
+    pool.query(query, params),
+    pool.query(countQuery, countParams),
+  ]);
   const total = countResult[0].total;
 
   return {
@@ -70,20 +73,21 @@ export async function getPlaces({
  * Get single place by ID
  */
 export async function getPlaceById(id) {
-  const [rows] = await pool.query(
-    `SELECT p.*, c.name as category_name,
-      (SELECT COUNT(*) FROM place_visits WHERE place_id = p.place_id) as visit_count
-     FROM places p
-     LEFT JOIN categories c ON p.category_id = c.category_id
-     WHERE p.place_id = ?`,
-    [id]
-  );
+  const [[rows], [images]] = await Promise.all([
+    pool.query(
+      `SELECT p.*, c.name as category_name,
+        (SELECT COUNT(*) FROM place_visits WHERE place_id = p.place_id) as visit_count
+       FROM places p
+       LEFT JOIN categories c ON p.category_id = c.category_id
+       WHERE p.place_id = ?`,
+      [id]
+    ),
+    pool.query('SELECT * FROM place_images WHERE place_id = ?', [id]),
+  ]);
 
   if (rows.length === 0) {
     return null;
   }
-
-  const [images] = await pool.query('SELECT * FROM place_images WHERE place_id = ?', [id]);
 
   return { ...rows[0], images };
 }

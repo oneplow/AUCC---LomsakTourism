@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { revalidatePublicPages } from '@/lib/revalidatePublic';
 
 // GET images for a place
 export async function GET(request, { params }) {
@@ -45,6 +46,7 @@ export async function POST(request, { params }) {
       'INSERT INTO place_images (place_id, image_url) VALUES (?, ?)',
       [id, image_url]
     );
+    revalidatePublicPages();
 
     return NextResponse.json(
       { message: 'เพิ่มรูปภาพสำเร็จ', image_id: result.insertId },
@@ -81,6 +83,7 @@ export async function DELETE(request, { params }) {
     }
 
     await pool.query('DELETE FROM place_images WHERE image_id = ? AND place_id = ?', [imageId, id]);
+    revalidatePublicPages();
     return NextResponse.json({ message: 'ลบรูปภาพสำเร็จ' });
   } catch (error) {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });

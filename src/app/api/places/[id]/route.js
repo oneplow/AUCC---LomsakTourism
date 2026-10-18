@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth, getAuthUser } from '@/lib/auth';
 import * as placesService from '@/services/placesService';
+import { revalidatePublicPages } from '@/lib/revalidatePublic';
 
 // GET single place
 export async function GET(request, { params }) {
@@ -39,6 +40,7 @@ export async function PUT(request, { params }) {
 
     const body = await request.json();
     await placesService.updatePlace(id, body);
+    revalidatePublicPages();
 
     return NextResponse.json({ message: 'อัปเดตสถานที่สำเร็จ' });
   } catch (error) {
@@ -57,6 +59,7 @@ export async function DELETE(request, { params }) {
 
     const { id } = await params;
     await placesService.deletePlace(id);
+    revalidatePublicPages();
 
     return NextResponse.json({ message: 'ลบสถานที่สำเร็จ' });
   } catch (error) {
