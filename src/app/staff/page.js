@@ -1,85 +1,168 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { MapPin, Eye, BarChart3 } from 'lucide-react';
+import {
+  Eye,
+  CalendarDays,
+  CalendarRange,
+  MapPin,
+  TrendingUp,
+  PencilLine,
+  BarChart3,
+  UserCircle,
+  Zap,
+} from 'lucide-react';
+import { LineChart, EmptyChart, formatNumber } from '@/components/reports/ReportCharts';
+import {
+  useDashboard,
+  buildLast30,
+  thaiToday,
+  KpiCard,
+  KpiSkeleton,
+  Panel,
+  TextLink,
+  TopPlaces,
+  TopPlacesTitle,
+  QuickActions,
+  DashboardError,
+} from '@/components/dashboard/DashboardParts';
+
+// แดชบอร์ด staff: ข้อมูลเฉพาะสถานที่ที่ได้รับมอบหมาย (API กรองจาก token)
+// รายละเอียด/ย้อนหลัง/export อยู่ที่ /staff/reports
+
+const VISIT_COLOR = '#b96545';
+
 export default function StaffDashboard() {
-  const [places, setPlaces] = useState([]);
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    fetchData();
-  }, []);
-  const fetchData = async () => {
-    try {
-      // คำขอเดียว: ได้ทั้งข้อมูลผู้ใช้และสถานที่ที่รับผิดชอบ
-      const d = await (await fetch('/api/staff-permissions?detail=1')).json();
-      if (!d.user) return;
-      setUser(d.user);
-      setPlaces(d.places || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  const total = places.reduce((s, p) => s + (p.visit_count || 0), 0);
-  const max = Math.max(...places.map((p) => p.visit_count || 0), 1);
+  const { data, loading, error } = useDashboard();
+
+  const v = data?.visits || {};
+  const placeCount = Number(data?.counts?.places) || 0;
+  const trend = buildLast30(v.today_date, data?.daily);
+  const [visits30] = trend.values;
+  const hasTrend = visits30.some((x) => x > 0);
+
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="mb-1 text-sm font-medium text-primary">พื้นที่รับผิดชอบ</p>
-        <h2 className="text-2xl font-semibold">สวัสดี, {user?.full_name || 'เจ้าหน้าที่'}</h2>
-        <p className="mt-2 text-sm text-content-secondary">
-          ติดตามสถานที่ที่ได้รับมอบหมายและจำนวนผู้เข้าชมจากหน้านี้
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-white p-5">
-          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <MapPin className="h-5 w-5" />
-          </div>
-          <p className="text-sm text-content-secondary">สถานที่ที่ดูแล</p>
-          <p className="mt-1 text-2xl font-semibold">{places.length}</p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-1 text-sm font-medium text-primary">
+            {data ? thaiToday(v.today_date) : 'พื้นที่รับผิดชอบ'}
+          </p>
+          <h1 className="text-2xl font-semibold">
+            สวัสดี, {data?.full_name || 'เจ้าหน้าที่'}
+          </h1>
+          <p className="mt-2 text-sm text-content-secondary">
+            ผู้เข้าชมสถานที่ที่คุณดูแล เทียบกับช่วงก่อนหน้า
+          </p>
         </div>
-        <div className="rounded-2xl border border-border bg-white p-5">
-          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Eye className="h-5 w-5" />
-          </div>
-          <p className="text-sm text-content-secondary">ผู้เข้าชมทั้งหมด</p>
-          <p className="mt-1 text-2xl font-semibold">{total.toLocaleString()}</p>
-        </div>
+        <TextLink href="/staff/reports">ดูรายงานเต็ม</TextLink>
       </div>
-      <section className="rounded-2xl border border-border bg-white p-5">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          อันดับสถานที่ที่ดูแล
-        </h3>
-        <div className="mt-5 space-y-4">
-          {[...places]
-            .sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0))
-            .map((p, i) => (
-              <div key={p.place_id} className="flex items-center gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-alt text-xs font-semibold">
-                  {i + 1}
+
+      {error ? (
+        <DashboardError />
+      ) : loading ? (
+        <KpiSkeleton />
+      ) : placeCount === 0 ? (
+        <div className="rounded-3xl border border-border bg-white p-10 text-center">
+          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <MapPin className="h-6 w-6" />
+          </span>
+          <p className="font-semibold">ยังไม่มีสถานที่ที่ได้รับมอบหมาย</p>
+          <p className="mt-1 text-sm text-content-muted">
+            ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์จัดการสถานที่
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiCard
+              highlight
+              icon={Eye}
+              label="ผู้เข้าชมวันนี้"
+              value={Number(v.today) || 0}
+              previous={Number(v.yesterday) || 0}
+              compareLabel="เมื่อวาน"
+            />
+            <KpiCard
+              icon={CalendarDays}
+              label="7 วันล่าสุด"
+              value={Number(v.last7) || 0}
+              previous={Number(v.prev7) || 0}
+              compareLabel="7 วันก่อนหน้า"
+            />
+            <KpiCard
+              icon={CalendarRange}
+              label="เดือนนี้"
+              value={Number(v.month) || 0}
+              previous={Number(v.prev_month) || 0}
+              compareLabel="ช่วงเดียวกันเดือนก่อน"
+            />
+            <div className="rounded-3xl border border-border bg-white p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-content-secondary">สถานที่ที่ดูแล</p>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <MapPin className="h-[18px] w-[18px]" />
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex justify-between gap-3">
-                    <p className="truncate text-sm font-medium">{p.name}</p>
-                    <span className="text-sm text-content-secondary">{p.visit_count || 0}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-surface-alt">
-                    <div
-                      className="h-2 rounded-full bg-primary"
-                      style={{ width: `${Math.max(((p.visit_count || 0) / max) * 100, 4)}%` }}
-                    />
-                  </div>
-                </div>
               </div>
-            ))}
-          {!places.length && (
-            <div className="py-8 text-center">
-              <MapPin className="mx-auto mb-3 h-8 w-8 text-content-muted" />
-              <p className="text-sm text-content-secondary">ยังไม่มีสถานที่ที่ได้รับมอบหมาย</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight">
+                {formatNumber(placeCount)}
+              </p>
+              <p className="mt-3 text-xs text-content-muted">
+                ผู้เข้าชมสะสม {formatNumber(v.total)} ครั้ง
+              </p>
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Panel
+              className="xl:col-span-2"
+              icon={TrendingUp}
+              title="ผู้เข้าชม 30 วันล่าสุด"
+              subtitle={`${trend.fullLabels[0]} – ${trend.fullLabels[29]}`}
+            >
+              {hasTrend ? (
+                <LineChart
+                  labels={trend.labels}
+                  formatLabel={(i) => trend.fullLabels[i]}
+                  minLabelGap={46}
+                  series={[{ name: 'ผู้เข้าชม', color: VISIT_COLOR, values: visits30 }]}
+                />
+              ) : (
+                <EmptyChart />
+              )}
+            </Panel>
+
+            <div className="space-y-6">
+              <Panel title={<TopPlacesTitle />} subtitle="ในสถานที่ที่คุณดูแล · 30 วันล่าสุด">
+                <TopPlaces items={data?.top} />
+              </Panel>
+              <Panel icon={Zap} title="ทางลัด">
+                <QuickActions
+                  actions={[
+                    {
+                      href: '/staff/places',
+                      label: 'แก้ไขสถานที่',
+                      description: 'อัปเดตข้อมูล เวลาเปิด และรูปภาพ',
+                      icon: PencilLine,
+                      primary: true,
+                    },
+                    {
+                      href: '/staff/reports',
+                      label: 'รายงานและสถิติ',
+                      description: 'ดูย้อนหลังและ export CSV',
+                      icon: BarChart3,
+                    },
+                    {
+                      href: '/staff/profile',
+                      label: 'ข้อมูลส่วนตัว',
+                      description: 'แก้ไขชื่อ อีเมล รหัสผ่าน',
+                      icon: UserCircle,
+                    },
+                  ]}
+                />
+              </Panel>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

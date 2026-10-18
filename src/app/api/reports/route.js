@@ -55,6 +55,102 @@ export async function GET(request) {
       return NextResponse.json({ data: rows });
     }
 
+    // ข้อมูลหน้าแดชบอร์ดทั้งหมดในคำขอเดียว (staff = เฉพาะสถานที่ที่ดูแล)
+    // ใช้ CURDATE() ของฐานข้อมูลเป็น "วันนี้" ให้ตรงกับเวลาที่บันทึก visited_at
+    if (type === 'dashboard') {
+      const isStaff = user.role === 'staff';
+      const join = isStaff
+        ? ' JOIN staff_permissions sp ON pv.place_id = sp.place_id AND sp.user_id = ?'
+        : '';
+      const jp = isStaff ? [user.user_id] : [];
+      const MONTH_START = "DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+
+      const queries = [
+        // 0: ตัวเลขเทียบช่วงก่อนหน้า
+        pool.query(
+          `SELECT
+             DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS today_date,
+             COALESCE(SUM(pv.visited_at >= CURDATE()), 0) AS today,
+             COALESCE(SUM(pv.visited_at >= CURDATE() - INTERVAL 1 DAY AND pv.visited_at < CURDATE()), 0) AS yesterday,
+             COALESCE(SUM(pv.visited_at >= CURDATE() - INTERVAL 6 DAY), 0) AS last7,
+             COALESCE(SUM(pv.visited_at >= CURDATE() - INTERVAL 13 DAY AND pv.visited_at < CURDATE() - INTERVAL 6 DAY), 0) AS prev7,
+             COALESCE(SUM(pv.visited_at >= ${MONTH_START}), 0) AS month,
+             COALESCE(SUM(pv.visited_at >= ${MONTH_START} - INTERVAL 1 MONTH
+               AND pv.visited_at < CURDATE() - INTERVAL 1 MONTH + INTERVAL 1 DAY
+               AND pv.visited_at < ${MONTH_START}), 0) AS prev_month,
+             COUNT(pv.visit_id) AS total
+           FROM place_visits pv${join}`,
+          jp
+        ),
+        // 1: ผู้เข้าชมรายวัน 30 วันล่าสุด
+        pool.query(
+          `SELECT DATE_FORMAT(pv.visited_at, '%Y-%m-%d') AS d, COUNT(*) AS total
+           FROM place_visits pv${join}
+           WHERE pv.visited_at >= CURDATE() - INTERVAL 29 DAY
+           GROUP BY d`,
+          jp
+        ),
+        // 2: สถานที่ยอดนิยม 3 อันดับ (30 วันล่าสุด)
+        pool.query(
+          `SELECT p.place_id, p.name, c.name AS category_name,
+             (SELECT image_url FROM place_images WHERE place_id = p.place_id LIMIT 1) AS image_url,
+             COUNT(pv.visit_id) AS visits
+           FROM place_visits pv${join}
+           JOIN places p ON p.place_id = pv.place_id
+           LEFT JOIN categories c ON c.category_id = p.category_id
+           WHERE pv.visited_at >= CURDATE() - INTERVAL 29 DAY
+           GROUP BY p.place_id, p.name, c.name
+           ORDER BY visits DESC
+           LIMIT 3`,
+          jp
+        ),
+        // 3: จำนวนสถานที่ (staff = ที่ดูแล)
+        isStaff
+          ? pool.query('SELECT COUNT(*) AS places FROM staff_permissions WHERE user_id = ?', [
+              user.user_id,
+            ])
+          : pool.query(
+              `SELECT (SELECT COUNT(*) FROM places) AS places,
+                 (SELECT COUNT(*) FROM categories) AS categories,
+                 (SELECT COUNT(*) FROM users) AS users`
+            ),
+        // 4: ชื่อผู้ใช้ล่าสุด
+        pool.query('SELECT full_name FROM users WHERE user_id = ?', [user.user_id]),
+      ];
+      if (!isStaff) {
+        // 5: แผนทริป AI (เฉพาะ admin)
+        queries.push(
+          pool.query(
+            `SELECT
+               COALESCE(SUM(created_at >= CURDATE() - INTERVAL 6 DAY), 0) AS last7,
+               COALESCE(SUM(created_at >= CURDATE() - INTERVAL 13 DAY AND created_at < CURDATE() - INTERVAL 6 DAY), 0) AS prev7,
+               COUNT(*) AS total
+             FROM trip_plans`
+          ),
+          // 6: แผนทริปรายวัน 30 วันล่าสุด
+          pool.query(
+            `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS d, COUNT(*) AS total
+             FROM trip_plans
+             WHERE created_at >= CURDATE() - INTERVAL 29 DAY
+             GROUP BY d`
+          )
+        );
+      }
+
+      const results = await Promise.all(queries);
+      const [[visits], [daily], [top], [counts], [me], trips, tripDaily] = results;
+      return NextResponse.json({
+        role: user.role,
+        full_name: me[0]?.full_name || user.full_name,
+        visits: visits[0],
+        daily,
+        top,
+        counts: counts[0],
+        trips: trips ? trips[0][0] : null,
+        tripDaily: tripDaily ? tripDaily[0] : [],
+      });
+    }
+
     // ยอดเข้าชมแยกรายสถานที่: ทั้งหมด / ทั้งปี / เดือนที่เลือก (staff = เฉพาะที่ดูแล)
     if (type === 'place_breakdown') {
       const now = new Date();

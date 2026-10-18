@@ -1,141 +1,193 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { MapPin, Eye, Bot, Users, BarChart3, Layers } from 'lucide-react';
+import {
+  Eye,
+  CalendarDays,
+  CalendarRange,
+  Bot,
+  TrendingUp,
+  MapPin,
+  Tag,
+  Users,
+  Plus,
+  BarChart3,
+  Zap,
+} from 'lucide-react';
+import { LineChart, ChartLegend, EmptyChart, formatNumber } from '@/components/reports/ReportCharts';
+import {
+  useDashboard,
+  buildLast30,
+  thaiToday,
+  KpiCard,
+  KpiSkeleton,
+  Panel,
+  TextLink,
+  TopPlaces,
+  TopPlacesTitle,
+  QuickActions,
+  DashboardError,
+} from '@/components/dashboard/DashboardParts';
+
+// แดชบอร์ด admin: ดูแวบเดียวว่าช่วงนี้เป็นอย่างไร — รายละเอียด/ย้อนหลัง/export อยู่ที่ /admin/reports
+
+const VISIT_COLOR = '#b96545';
+const TRIP_COLOR = '#3f6fa8';
+
 export default function AdminDashboard() {
-  const [stats, setStats] = useState(null);
-  const [topVisited, setTopVisited] = useState([]);
-  const [tripUsage, setTripUsage] = useState(null);
-  const [popularCats, setPopularCats] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    Promise.all(
-      [
-        '/api/reports?type=summary',
-        '/api/reports?type=top_visited',
-        '/api/reports?type=trip_usage',
-        '/api/reports?type=popular_categories',
-      ].map((url) => fetch(url).then((r) => r.json()))
-    )
-      .then(([s, v, t, c]) => {
-        setStats(s.data);
-        setTopVisited(v.data || []);
-        setTripUsage(t.data);
-        setPopularCats(c.data || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-  if (loading)
-    return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-32 animate-pulse rounded-2xl border border-border bg-white" />
-        ))}
-      </div>
-    );
-  const cards = [
-    { label: 'สถานที่ทั้งหมด', value: stats?.places || 0, icon: MapPin },
-    { label: 'เข้าชมทั้งหมด', value: stats?.visits || 0, icon: Eye },
-    { label: 'แผนทริปที่สร้าง', value: stats?.trips || 0, icon: Bot },
-    { label: 'ผู้ใช้งานระบบ', value: stats?.users || 0, icon: Users },
-  ];
-  const max = Math.max(...topVisited.map((p) => p.visit_count || 0), 1);
+  const { data, loading, error } = useDashboard();
+
+  const v = data?.visits || {};
+  const t = data?.trips || {};
+  const c = data?.counts || {};
+  const trend = buildLast30(v.today_date, data?.daily, data?.tripDaily);
+  const [visits30, trips30] = trend.values;
+  const hasTrend = visits30.some((x) => x > 0) || trips30.some((x) => x > 0);
+
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="mb-1 text-sm font-medium text-primary">ภาพรวมระบบ</p>
-        <h2 className="text-2xl font-semibold">ยินดีต้อนรับกลับมา</h2>
-        <p className="mt-2 text-sm text-content-secondary">
-          ติดตามข้อมูลสถานที่ ผู้ใช้งาน และการใช้งานระบบจากหน้านี้
-        </p>
-      </div>
-      <section>
-        <h3 className="mb-3 text-sm font-semibold">สรุปข้อมูลสำคัญ</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map(({ label, value, icon: Icon }) => (
-            <div key={label} className="rounded-2xl border border-border bg-white p-5">
-              <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </div>
-              <p className="text-sm text-content-secondary">{label}</p>
-              <p className="mt-1 text-2xl font-semibold">{value.toLocaleString()}</p>
-            </div>
-          ))}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-1 text-sm font-medium text-primary">
+            {data ? thaiToday(v.today_date) : 'ภาพรวมระบบ'}
+          </p>
+          <h1 className="text-2xl font-semibold">
+            สวัสดี{data?.full_name ? `, ${data.full_name}` : ''}
+          </h1>
+          <p className="mt-2 text-sm text-content-secondary">
+            สรุปผู้เข้าชมและการใช้งานระบบล่าสุด เทียบกับช่วงก่อนหน้า
+          </p>
         </div>
-      </section>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <section className="rounded-2xl border border-border bg-white p-5 lg:col-span-2">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h3 className="flex items-center gap-2 font-semibold">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                สถานที่ยอดนิยม
-              </h3>
-              <p className="mt-1 text-sm text-content-muted">เรียงตามจำนวนการเข้าชม</p>
-            </div>
-            <span className="text-xs text-content-muted">Top {topVisited.length}</span>
+        <TextLink href="/admin/reports">ดูรายงานเต็ม</TextLink>
+      </div>
+
+      {error ? (
+        <DashboardError />
+      ) : loading ? (
+        <KpiSkeleton />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiCard
+              highlight
+              icon={Eye}
+              label="ผู้เข้าชมวันนี้"
+              value={Number(v.today) || 0}
+              previous={Number(v.yesterday) || 0}
+              compareLabel="เมื่อวาน"
+            />
+            <KpiCard
+              icon={CalendarDays}
+              label="7 วันล่าสุด"
+              value={Number(v.last7) || 0}
+              previous={Number(v.prev7) || 0}
+              compareLabel="7 วันก่อนหน้า"
+            />
+            <KpiCard
+              icon={CalendarRange}
+              label="เดือนนี้"
+              value={Number(v.month) || 0}
+              previous={Number(v.prev_month) || 0}
+              compareLabel="ช่วงเดียวกันเดือนก่อน"
+            />
+            <KpiCard
+              icon={Bot}
+              label="แผนทริป AI · 7 วัน"
+              value={Number(t.last7) || 0}
+              previous={Number(t.prev7) || 0}
+              compareLabel="7 วันก่อนหน้า"
+            />
           </div>
-          <div className="space-y-4">
-            {topVisited.map((p, i) => (
-              <div key={p.place_id} className="flex items-center gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-alt text-xs font-semibold">
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex justify-between gap-3">
-                    <p className="truncate text-sm font-medium">{p.name}</p>
-                    <span className="text-sm text-content-secondary">{p.visit_count} ครั้ง</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-surface-alt">
-                    <div
-                      className="h-2 rounded-full bg-primary"
-                      style={{ width: `${Math.max((p.visit_count / max) * 100, 4)}%` }}
-                    />
-                  </div>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Panel
+              className="xl:col-span-2"
+              icon={TrendingUp}
+              title="แนวโน้ม 30 วันล่าสุด"
+              subtitle={`${trend.fullLabels[0]} – ${trend.fullLabels[29]}`}
+            >
+              {hasTrend ? (
+                <div className="space-y-3">
+                  <LineChart
+                    labels={trend.labels}
+                    formatLabel={(i) => trend.fullLabels[i]}
+                    minLabelGap={46}
+                    series={[
+                      { name: 'ผู้เข้าชม', color: VISIT_COLOR, values: visits30 },
+                      { name: 'แผนทริป AI', color: TRIP_COLOR, values: trips30 },
+                    ]}
+                  />
+                  <ChartLegend
+                    series={[
+                      { name: 'ผู้เข้าชม', color: VISIT_COLOR },
+                      { name: 'แผนทริป AI', color: TRIP_COLOR },
+                    ]}
+                  />
                 </div>
-              </div>
-            ))}
-            {!topVisited.length && (
-              <p className="py-8 text-center text-sm text-content-muted">ยังไม่มีข้อมูล</p>
-            )}
+              ) : (
+                <EmptyChart />
+              )}
+            </Panel>
+
+            <Panel title={<TopPlacesTitle />} subtitle="ผู้เข้าชมสูงสุดใน 30 วันล่าสุด">
+              <TopPlaces items={data?.top} />
+            </Panel>
           </div>
-        </section>
-        <div className="space-y-6">
-          {tripUsage && (
-            <section className="rounded-2xl border border-border bg-white p-5">
-              <h3 className="mb-4 flex items-center gap-2 font-semibold">
-                <Bot className="h-5 w-5 text-primary" />
-                การใช้งาน AI
-              </h3>
-              <p className="text-sm text-content-secondary">แผนทริปที่สร้างทั้งหมด</p>
-              <p className="mt-1 text-3xl font-semibold">{tripUsage.total_trips}</p>
-              <p className="mt-4 border-t border-border pt-3 text-xs text-content-muted">
-                อัปเดตล่าสุด:{' '}
-                {tripUsage.last_trip
-                  ? new Date(tripUsage.last_trip).toLocaleDateString('th-TH')
-                  : '-'}
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <Panel
+              className="xl:col-span-2"
+              icon={BarChart3}
+              title="ข้อมูลในระบบ"
+              subtitle="จำนวนรวมทั้งหมด ณ ตอนนี้"
+            >
+              <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                  { label: 'สถานที่', value: c.places, icon: MapPin },
+                  { label: 'หมวดหมู่', value: c.categories, icon: Tag },
+                  { label: 'ผู้ใช้งาน', value: c.users, icon: Users },
+                  { label: 'แผนทริป AI', value: t.total, icon: Bot },
+                ].map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="rounded-2xl bg-surface-alt/60 p-4">
+                    <dt className="flex items-center gap-2 text-xs text-content-secondary">
+                      <Icon className="h-4 w-4 text-primary" />
+                      {label}
+                    </dt>
+                    <dd className="mt-2 text-2xl font-semibold">{formatNumber(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-4 text-xs text-content-muted">
+                ผู้เข้าชมสะสมทั้งหมด {formatNumber(v.total)} ครั้ง
               </p>
-            </section>
-          )}
-          <section className="rounded-2xl border border-border bg-white p-5">
-            <h3 className="mb-4 flex items-center gap-2 font-semibold">
-              <Layers className="h-5 w-5 text-primary" />
-              หมวดหมู่ยอดนิยม
-            </h3>
-            <div className="space-y-2">
-              {popularCats.map((c) => (
-                <div
-                  key={c.category_id}
-                  className="flex justify-between rounded-lg bg-surface-alt px-3 py-2 text-sm"
-                >
-                  <span>{c.name}</span>
-                  <span className="text-content-secondary">{c.visit_count}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
+            </Panel>
+
+            <Panel icon={Zap} title="ทางลัด">
+              <QuickActions
+                actions={[
+                  {
+                    href: '/admin/places?new=1',
+                    label: 'เพิ่มสถานที่',
+                    description: 'สร้างสถานที่ท่องเที่ยวใหม่',
+                    icon: Plus,
+                    primary: true,
+                  },
+                  {
+                    href: '/admin/users',
+                    label: 'จัดการผู้ใช้',
+                    description: 'เพิ่ม staff และกำหนดสิทธิ์',
+                    icon: Users,
+                  },
+                  {
+                    href: '/admin/reports',
+                    label: 'รายงานและสถิติ',
+                    description: 'ดูย้อนหลังและ export CSV',
+                    icon: BarChart3,
+                  },
+                ]}
+              />
+            </Panel>
+          </div>
+        </>
+      )}
     </div>
   );
 }

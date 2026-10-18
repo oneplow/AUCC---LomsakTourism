@@ -124,6 +124,7 @@ const GRID_COLOR = '#e9e3da';
 const LABEL_COLOR = '#8a908a';
 const HOVER_BAND = '#f3efe8';
 const MIN_LABEL_GAP = 30; // ระยะห่างขั้นต่ำ (px) ระหว่าง label แกน X
+// label แกน X นับถอยหลังจากจุดสุดท้าย: จุดล่าสุดแสดงเสมอ และระยะห่างเท่ากันไม่ชนกัน
 
 // วัดความกว้างจริงของกราฟ เพื่อวาด SVG ตามขนาดพิกเซลจริง
 // (ตัวอักษรไม่เล็กลงเมื่อการ์ดแคบ และวาง tooltip ได้ตรงตำแหน่ง)
@@ -237,7 +238,13 @@ function YGrid({ ticks, yAt, width }) {
  * แล้วแสดงค่าของทุกเส้นใน tooltip เดียว
  * @param formatLabel (index) => หัวข้อใน tooltip เช่น "18 ตุลาคม 2569"
  */
-export function LineChart({ labels, series, formatLabel, ariaLabel = 'กราฟแนวโน้มผู้เข้าชม' }) {
+export function LineChart({
+  labels,
+  series,
+  formatLabel,
+  ariaLabel = 'กราฟแนวโน้มผู้เข้าชม',
+  minLabelGap = MIN_LABEL_GAP,
+}) {
   const [ref, width] = useChartWidth();
   const [active, setActive] = useState(null);
   const onKeyDown = useKeyboardIndex(labels.length, setActive);
@@ -247,7 +254,7 @@ export function LineChart({ labels, series, formatLabel, ariaLabel = 'กรา�
   const stepX = labels.length > 1 ? innerW / (labels.length - 1) : 0;
   const xAt = (index) => PAD.left + index * stepX;
   const yAt = (value) => PAD.top + innerH - (value / top) * innerH;
-  const labelStep = Math.max(1, Math.ceil(MIN_LABEL_GAP / Math.max(stepX, 1)));
+  const labelStep = Math.max(1, Math.ceil(minLabelGap / Math.max(stepX, 1)));
 
   const handleMove = (event) => {
     const box = event.currentTarget.getBoundingClientRect();
@@ -279,7 +286,7 @@ export function LineChart({ labels, series, formatLabel, ariaLabel = 'กรา�
           <YGrid ticks={ticks} yAt={yAt} width={width} />
           {labels.map(
             (label, index) =>
-              (index % labelStep === 0 || index === labels.length - 1) && (
+              (labels.length - 1 - index) % labelStep === 0 && (
                 <text
                   key={`x-${label}`}
                   x={xAt(index)}
@@ -428,7 +435,7 @@ export function BarChart({ labels, series, formatLabel, ariaLabel = 'กรา�
                     />
                   );
                 })}
-                {(index % labelStep === 0 || index === labels.length - 1) && (
+                {(labels.length - 1 - index) % labelStep === 0 && (
                   <text
                     x={groupCenter}
                     y={CHART_H - 12}

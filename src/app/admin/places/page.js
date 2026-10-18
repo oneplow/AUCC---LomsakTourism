@@ -29,6 +29,11 @@ export default function AdminPlacesPage() {
   useEffect(() => {
     fetchPlaces();
     fetchCategories();
+    // ปุ่มลัดจากแดชบอร์ด (/admin/places?new=1) → เปิดฟอร์มเพิ่มสถานที่ทันที
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      setShowForm(true);
+      window.history.replaceState(null, '', '/admin/places');
+    }
   }, []);
   useModalScrollLock(showForm);
   const fetchPlaces = async () => {

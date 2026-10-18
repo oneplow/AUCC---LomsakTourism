@@ -33,15 +33,17 @@ export async function PUT(request) {
       }
       const hashed = await bcrypt.hash(new_password, 10);
       await pool.query(
-        'UPDATE users SET full_name = ?, email = ?, password = ? WHERE user_id = ?',
-        [full_name || user.full_name, email || user.email, hashed, user.user_id]
+        `UPDATE users SET full_name = COALESCE(NULLIF(?, ''), full_name),
+           email = COALESCE(NULLIF(?, ''), email), password = ? WHERE user_id = ?`,
+        [full_name?.trim() || '', email?.trim() || '', hashed, user.user_id]
       );
     } else {
-      await pool.query('UPDATE users SET full_name = ?, email = ? WHERE user_id = ?', [
-        full_name || user.full_name,
-        email || user.email,
-        user.user_id,
-      ]);
+      // ช่องที่ว่างจะคงค่าเดิมในฐานข้อมูลไว้ (เดิม token ไม่มี email ทำให้ email ถูกล้างเป็น NULL)
+      await pool.query(
+        `UPDATE users SET full_name = COALESCE(NULLIF(?, ''), full_name),
+           email = COALESCE(NULLIF(?, ''), email) WHERE user_id = ?`,
+        [full_name?.trim() || '', email?.trim() || '', user.user_id]
+      );
     }
 
     return NextResponse.json({ success: true, message: 'อัปเดตข้อมูลสำเร็จ' });
