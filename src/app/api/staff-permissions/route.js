@@ -5,11 +5,12 @@ import { requireAuth } from '@/lib/auth';
 // GET staff permissions
 export async function GET(request) {
   try {
-    const auth = await requireAuth(['admin']);
+    const auth = await requireAuth(['admin', 'staff']);
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('user_id');
+    // staff ดูได้เฉพาะสิทธิ์ของตัวเอง ส่วน admin ระบุ user_id ใครก็ได้
+    const userId = auth.user.role === 'admin' ? searchParams.get('user_id') : auth.user.user_id;
 
     let query = `
       SELECT sp.*, p.name as place_name, u.username, u.full_name
@@ -29,6 +30,7 @@ export async function GET(request) {
     const [permissions] = await pool.query(query, params);
     return NextResponse.json({ permissions });
   } catch (error) {
+    console.error('GET /api/staff-permissions', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
@@ -51,6 +53,7 @@ export async function POST(request) {
 
     return NextResponse.json({ message: 'กำหนดสิทธิ์สำเร็จ' }, { status: 201 });
   } catch (error) {
+    console.error('POST /api/staff-permissions', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
@@ -71,6 +74,7 @@ export async function DELETE(request) {
     await pool.query('DELETE FROM staff_permissions WHERE permission_id = ?', [permissionId]);
     return NextResponse.json({ message: 'ลบสิทธิ์สำเร็จ' });
   } catch (error) {
+    console.error('DELETE /api/staff-permissions', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
   }
 }
