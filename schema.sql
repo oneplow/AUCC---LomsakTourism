@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS places (
   longitude DECIMAL(11, 8),
   open_time TIME,
   close_time TIME,
+  open_days VARCHAR(20) NULL COMMENT 'วันเปิด เช่น 0,6 (0=อาทิตย์ ... 6=เสาร์), NULL = เปิดทุกวัน',
   phone VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -111,3 +112,9 @@ INSERT INTO place_images (place_id, image_url) VALUES
 (3, 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'),
 (4, 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800'),
 (5, 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800');
+
+-- ================================
+-- Migration: วันเปิดของสถานที่ (สำหรับฐานข้อมูลเดิมที่สร้างไว้ก่อน)
+-- ================================
+-- ALTER TABLE places ADD COLUMN open_days VARCHAR(20) NULL AFTER close_time;
+-- UPDATE places SET open_days = '6' WHERE name LIKE '%ถนนคนเดิน%';  -- ตัวอย่าง: เปิดเฉพาะวันเสาร์

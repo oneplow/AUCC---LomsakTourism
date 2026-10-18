@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // Database Entity Types
 // ============================================
 
@@ -19,6 +19,8 @@ export interface Place {
   longitude: number | null;
   open_time: string | null;
   close_time: string | null;
+  /** วันเปิด "0,6" (0 = อาทิตย์), null = เปิดทุกวัน */
+  open_days: string | null;
   phone: string | null;
   created_at: string;
   updated_at: string;
@@ -165,6 +167,7 @@ export interface PlaceFormData {
   longitude: number;
   open_time?: string;
   close_time?: string;
+  open_days?: string;
   phone?: string;
 }
 

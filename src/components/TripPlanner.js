@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import TripRouteMap from '@/components/TripRouteMap';
 import {
   Sparkles,
@@ -14,7 +14,14 @@ import {
   Radar,
   Lightbulb,
   Search,
+  CalendarDays,
 } from 'lucide-react';
+
+// วันที่วันนี้ตามเวลาเครื่องผู้ใช้ รูปแบบ YYYY-MM-DD
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 export default function TripPlanner({ categories = [] }) {
   const [form, setForm] = useState({
@@ -22,6 +29,7 @@ export default function TripPlanner({ categories = [] }) {
     budget: 3000,
     start_time: '08:00',
     end_time: '18:00',
+    start_date: '',
     place_types: [],
     radius_km: 50,
     location_mode: 'auto',
@@ -38,6 +46,11 @@ export default function TripPlanner({ categories = [] }) {
   const [gpsStatus, setGpsStatus] = useState('idle');
   const [searchingAddress, setSearchingAddress] = useState(false);
   const resultsRef = useRef(null);
+
+  // ตั้งค่าวันนี้หลัง mount (ไม่ทำตอน render เพื่อกัน hydration mismatch ระหว่าง server/client)
+  useEffect(() => {
+    setForm((prev) => (prev.start_date ? prev : { ...prev, start_date: todayISO() }));
+  }, []);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   const toggleCategory = (catId) =>
@@ -130,10 +143,20 @@ export default function TripPlanner({ categories = [] }) {
       const result = data.plan || {};
       setPlan(result);
       setNote(data.note || '');
-      const points = (result.days || []).flatMap((day) =>
+      // เก็บวัน/ลำดับในวันไว้ด้วย เพื่อให้แผนที่นับเลขและลากเส้นแยกตามวัน (ตรงกับตารางกิจกรรม)
+      const points = (result.days || []).flatMap((day, di) =>
         (day.activities || [])
-          .map((a) => ({ lat: parseFloat(a.lat), lng: parseFloat(a.lng), name: a.place }))
+          .map((a) => ({
+            lat: parseFloat(a.lat),
+            lng: parseFloat(a.lng),
+            name: a.place,
+            time: a.time,
+            travel: a.travel,
+            type: a.type,
+            day: di + 1,
+          }))
           .filter((p) => !isNaN(p.lat) && !isNaN(p.lng))
+          .map((p, i) => ({ ...p, seq: i + 1 }))
       );
       setRoutePoints(points);
       setTimeout(
@@ -209,6 +232,23 @@ export default function TripPlanner({ categories = [] }) {
                   className="nature-input"
                   required
                 />
+              </label>
+              <label className="field-label sm:col-span-2">
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays size={14} />
+                  วันที่เริ่มเดินทาง
+                </span>
+                <input
+                  type="date"
+                  value={form.start_date}
+                  min={form.start_date ? todayISO() : undefined}
+                  onChange={(e) => update('start_date', e.target.value)}
+                  className="nature-input"
+                  aria-describedby="start-date-hint"
+                />
+                <span id="start-date-hint" className="text-xs font-normal text-content-muted">
+                  ใช้คัดสถานที่ที่เปิดเฉพาะบางวัน เช่น ถนนคนเดินวันเสาร์
+                </span>
               </label>
               <label className="field-label">
                 <span className="inline-flex items-center gap-1.5">
@@ -410,6 +450,11 @@ export default function TripPlanner({ categories = [] }) {
               <h3 className="text-xl mb-4">
                 วันที่ {day.day}
                 {day.title ? ` · ${day.title}` : ''}
+                {day.date && (
+                  <span className="mt-1 block text-sm font-normal text-content-muted">
+                    {day.date}
+                  </span>
+                )}
               </h3>
               <ol className="grid gap-4">
                 {(day.activities || []).map((a, i) => (
@@ -427,7 +472,13 @@ export default function TripPlanner({ categories = [] }) {
                           {a.travel}
                         </p>
                       )}
-                      <p className="font-semibold">{a.place}</p>
+                      <p
+                        className={
+                          a.type === 'free' ? 'font-medium text-content-muted' : 'font-semibold'
+                        }
+                      >
+                        {a.place}
+                      </p>
                       {a.description && (
                         <p className="mt-1 text-sm text-content-secondary leading-relaxed">
                           {a.description}

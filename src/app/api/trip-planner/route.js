@@ -1,155 +1,28 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+  FUEL_THB_PER_KM,
+  ROAD_FACTOR,
+  buildRoadMatrix,
+  buildSchedule,
+  isLodging,
+  roadKm,
+  roadKmFromStart,
+  toHHMM,
+  toMin,
+  tripWeekday,
+  visitMinutes,
+} from '@/lib/tripSchedule';
+import { parseOpenDays } from '@/lib/openDays';
 
-// สมมติฐานการเดินทางในพื้นที่ภูเขา/ชนบท
-const ROAD_FACTOR = 1.4; // ระยะถนนจริง ≈ ระยะเส้นตรง × 1.4
-const AVG_SPEED_KMH = 45; // ความเร็วเฉลี่ยรวมทางขึ้นเขา
-const PARKING_MIN = 5; // เวลาจอดรถ/เดินเข้าสถานที่
-const FUEL_THB_PER_KM = 3; // ค่าน้ำมันรถยนต์โดยประมาณ
-const FALLBACK_TRAVEL_MIN = 20;
-
-const haversine = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-const hasCoords = (p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lng);
-const roadKm = (a, b) =>
-  hasCoords(a) && hasCoords(b) ? haversine(a.lat, a.lng, b.lat, b.lng) * ROAD_FACTOR : null;
-const travelMin = (km) =>
-  km === null ? FALLBACK_TRAVEL_MIN : Math.round((km / AVG_SPEED_KMH) * 60) + PARKING_MIN;
-
-const toMin = (t) => {
-  if (!t) return null;
-  const [h, m] = String(t).split(':').map(Number);
-  return Number.isFinite(h) ? h * 60 + (m || 0) : null;
-};
-const toHHMM = (m) =>
-  `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-
-const isLodging = (cat) => /ที่พัก|รีสอร์ท|โรงแรม/.test(cat || '');
-const visitMinutes = (cat) => {
-  if (/วัด|ศาสน/.test(cat)) return 45;
-  if (/น้ำตก|ธรรมชาติ/.test(cat)) return 90;
-  if (/ชมวิว/.test(cat)) return 60;
-  if (/ตลาด|ชุมชน/.test(cat)) return 60;
-  if (/เรียนรู้|พิพิธ/.test(cat)) return 60;
-  return 60;
-};
-const toNumber = (v) => {
-  const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, ''));
-  return Number.isFinite(n) ? Math.round(n) : 0;
-};
-
-// คำนวณตารางเวลาจริงจากลำดับที่ AI เลือก: เวลาเดินทาง, รอเปิด, ตัดกิจกรรมที่เกินเวลา/ปิดแล้ว
-function buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd) {
-  const byId = Object.fromEntries(candidates.map((c) => [c.id, c]));
-  const used = new Set();
-  const warnings = [];
-  let current = startPoint;
-  let totalKm = 0;
-  let itemCost = 0;
-
-  const days = (aiPlan.days || []).map((day, dayIdx) => {
-    let clock = dayStart;
-    const activities = [];
-
-    for (const item of day.items || []) {
-      const type = item.type || 'visit';
-
-      if (type === 'meal') {
-        const duration = Math.max(30, Math.min(toNumber(item.duration_min) || 60, 90));
-        if (clock + duration > dayEnd) continue;
-        const cost = toNumber(item.cost);
-        itemCost += cost;
-        activities.push({
-          time: `${toHHMM(clock)} - ${toHHMM(clock + duration)}`,
-          place: item.name || 'พักรับประทานอาหาร',
-          description: item.description || '',
-          cost: `${cost} บาท`,
-          tips: item.tips || '',
-          type: 'meal',
-        });
-        clock += duration;
-        continue;
-      }
-
-      const place = byId[item.id];
-      if (!place || (type === 'visit' && used.has(place.id))) continue;
-
-      const km = roadKm(current, place);
-      const travel = current ? travelMin(km) : 0;
-      let arrive = clock + travel;
-
-      if (type === 'lodging') {
-        const cost = toNumber(item.cost);
-        itemCost += cost;
-        totalKm += km || 0;
-        activities.push({
-          time: `${toHHMM(arrive)} เช็คอิน`,
-          place: place.name,
-          description: item.description || 'เข้าพักค้างคืน',
-          cost: `${cost} บาท`,
-          tips: item.tips || '',
-          travel: travel ? `เดินทาง ${travel} นาที${km ? ` · ${km.toFixed(1)} กม.` : ''}` : '',
-          lat: place.lat,
-          lng: place.lng,
-          type: 'lodging',
-        });
-        current = place;
-        clock = arrive;
-        continue;
-      }
-
-      if (place.open !== null && arrive < place.open) arrive = place.open; // รอสถานที่เปิด
-      const duration = Math.max(20, Math.min(toNumber(item.duration_min) || place.visit, 240));
-      const leave = arrive + duration;
-      const closeLimit =
-        place.close !== null && place.close > (place.open ?? 0) ? place.close : 24 * 60;
-
-      if (leave > dayEnd || leave > closeLimit) {
-        warnings.push(
-          `ตัด "${place.name}" ออกจากวันที่ ${dayIdx + 1} เพราะเวลาไม่พอหรือสถานที่ปิดก่อน`
-        );
-        continue;
-      }
-
-      const cost = toNumber(item.cost);
-      itemCost += cost;
-      totalKm += km || 0;
-      used.add(place.id);
-      activities.push({
-        time: `${toHHMM(arrive)} - ${toHHMM(leave)}`,
-        place: place.name,
-        description: item.description || '',
-        cost: `${cost} บาท`,
-        tips: item.tips || '',
-        travel: travel ? `เดินทาง ${travel} นาที${km ? ` · ${km.toFixed(1)} กม.` : ''}` : '',
-        lat: place.lat,
-        lng: place.lng,
-        type: 'visit',
-      });
-      current = place;
-      clock = leave;
-    }
-
-    return { day: day.day || dayIdx + 1, title: day.title || '', activities };
-  });
-
-  const transport = Math.round(totalKm * FUEL_THB_PER_KM);
-  return { days, warnings, transport, itemCost };
-}
+const WEEKDAY_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export async function POST(request) {
   try {
     const body = await request.json();
     const { start_time, end_time, place_types, user_lat, user_lng, radius_km } = body;
+    const startDate = tripWeekday(body.start_date, 0) === null ? null : body.start_date;
     const days = parseInt(body.days);
     const budget = parseInt(body.budget);
 
@@ -167,7 +40,7 @@ export async function POST(request) {
     }
 
     let placesQuery = `
-      SELECT p.name, p.description, p.open_time, p.close_time, p.latitude, p.longitude, c.name as category_name
+      SELECT p.name, p.description, p.open_time, p.close_time, p.open_days, p.latitude, p.longitude, c.name as category_name
       FROM places p
       LEFT JOIN categories c ON p.category_id = c.category_id
     `;
@@ -193,16 +66,35 @@ export async function POST(request) {
         lng,
         open: toMin(r.open_time),
         close: toMin(r.close_time),
-        visit: visitMinutes(r.category_name || ''),
+        openDays: parseOpenDays(r.open_days),
+        visit: visitMinutes(r.category_name || '', r.name || ''),
       };
       p.distFromStart = startPoint ? roadKm(startPoint, p) : null;
       return p;
     });
 
+    // วันในสัปดาห์ของแต่ละวันทริป → ตัดสถานที่ที่ไม่เปิดเลยตลอดทริปออกตั้งแต่ต้น
+    const tripWeekdays = startDate
+      ? Array.from({ length: days }, (_, i) => tripWeekday(startDate, i))
+      : null;
+    if (tripWeekdays) {
+      places = places.filter(
+        (p) => !p.openDays || p.openDays.some((d) => tripWeekdays.includes(d))
+      );
+    }
+
     if (startPoint) {
+      // รัศมีวัดแบบเส้นตรงตามตัวเลื่อน แล้วเรียง "ใกล้สุด" ด้วยระยะถนนจริงจาก OSRM
+      // (จุดที่ดูใกล้บนแผนที่อาจต้องขับอ้อมไกลกว่า) — OSRM สาธารณะรับได้ ~100 พิกัด จึงส่ง 90 จุดแรก
       places = places
         .filter((p) => p.distFromStart !== null && p.distFromStart / ROAD_FACTOR <= maxRadius)
         .sort((a, b) => a.distFromStart - b.distFromStart);
+      const head = places.slice(0, 90);
+      const roadDist = await roadKmFromStart(startPoint, head);
+      head.forEach((p, i) => {
+        if (Number.isFinite(roadDist[i])) p.distFromStart = roadDist[i];
+      });
+      places = [...head.sort((a, b) => a.distFromStart - b.distFromStart), ...places.slice(90)];
     }
 
     if (places.length === 0) {
@@ -253,21 +145,26 @@ export async function POST(request) {
       });
     }
 
-    // ข้อมูลสถานที่ + ตารางเวลาเดินทาง (นาที) ที่ server คำนวณให้ AI ไม่ต้องเดาเอง
+    // ตารางระยะทาง/เวลาตามถนนจริง (index สุดท้าย = จุดเริ่มต้นของผู้ใช้ ถ้ามี)
+    const nodes = startPoint ? [...candidates, startPoint] : candidates;
+    const roadMatrix = await buildRoadMatrix(nodes);
+    const startIdx = startPoint ? candidates.length : null;
+
     const placeLines = candidates
-      .map((p) => {
+      .map((p, i) => {
         const hours =
           p.open !== null && p.close !== null ? `${toHHMM(p.open)}-${toHHMM(p.close)}` : 'unknown';
-        const fromStart = startPoint ? `|start→${travelMin(p.distFromStart)}m` : '';
+        const fromStart = startPoint ? `|start→${roadMatrix.min[startIdx][i]}m` : '';
         const kind = isLodging(p.category) ? 'LODGING' : `visit~${p.visit}m`;
-        return `${p.id}|${p.name}|${p.category}|open ${hours}|${kind}${fromStart}`;
+        const openDays = p.openDays
+          ? ` ONLY ${p.openDays.map((d) => WEEKDAY_EN[d]).join('/')}`
+          : '';
+        return `${p.id}|${p.name}|${p.category}|open ${hours}${openDays}|${kind}${fromStart}`;
       })
       .join('\n');
 
     const matrix = candidates
-      .map(
-        (a) => `${a.id}:${candidates.map((b) => (a === b ? 0 : travelMin(roadKm(a, b)))).join(',')}`
-      )
+      .map((a, i) => `${a.id}:${candidates.map((_, j) => roadMatrix.min[i][j]).join(',')}`)
       .join('\n');
 
     const hasLodging = candidates.some((p) => isLodging(p.category));
@@ -275,6 +172,7 @@ export async function POST(request) {
 
     const prompt = `Plan a realistic ${days}-day car trip in Lomsak, Phetchabun, Thailand.
 Budget: ${budget} THB total for 1 traveler (fuel is calculated separately: ~${FUEL_THB_PER_KM} THB/km). Daily window: ${start_time}-${end_time} (${dailyMinutes} min).
+${tripWeekdays ? `Weekdays: ${tripWeekdays.map((d, i) => `day${i + 1}=${WEEKDAY_EN[d]}`).join(', ')}. A place marked "ONLY <days>" may be scheduled only on a matching day.` : 'Travel date unknown: avoid places marked "ONLY <days>" unless nothing else fits.'}
 ${startPoint ? "Day 1 starts at the traveler's location (start→ = travel minutes from it)." : 'Start point unknown; begin day 1 at the most central place.'}
 
 Places (id|name|category|opening hours|type & suggested visit minutes):
@@ -286,24 +184,79 @@ ${matrix}
 Planning rules:
 1. Time budget per day: sum(travel + visit + meals) must fit ${dailyMinutes} min. Leave ~15% slack. Typically 3-5 visits/day; never cram.
 2. Route: order visits to minimize travel (follow the matrix, avoid zig-zag, no backtracking). Cluster nearby places on the same day.
-3. Opening hours: only schedule a place while open. Never repeat a place across days.
+3. Opening hours: only schedule a place while open. Never repeat a place across days. Places opening at/after 16:00 (night markets, walking streets) belong at the END of a day, and only if the daily window ends at least ~60 min after they open; otherwise leave them out.
 4. Fit by time of day: viewpoints at sunrise/early morning or late afternoon; waterfalls/nature 09:00-15:00; temples morning; markets per their open hours.
 5. Meals: add a "meal" item for lunch between 11:30-13:30${dayEnd >= 18 * 60 ? ' and dinner after 17:30' : ''}; place it right after a nearby visit. Breakfast only if day starts before 08:00.
 6. ${days > 1 ? (hasLodging ? 'End each day except the last with one "lodging" item (a LODGING id) close to the next day\'s first visit.' : 'No lodging in list: assume an overnight stay in Lomsak town; do not add lodging items.') : 'Single day: no lodging.'} LODGING ids are never "visit" items.
 7. Budget: realistic local prices (entry fees often 0-50 THB, local meal 60-150 THB, lodging 500-1500 THB/night). Keep sum of costs + fuel within budget; scale choices down if budget is tight.
-8. Use only ids from the list. Items are in chronological order; the server computes exact clock times.
+8. Use only ids from the list. Your main job is choosing WHICH places go on WHICH day (cluster by area) and the right meals; the server re-orders visits within each day for the shortest route and computes exact clock times.
 9. All text values in Thai. description ≤ 25 words, tips ≤ 15 words, practical (what to bring, best spot, dress code).
 
 Return JSON only:
 {"title":"","summary":"","days":[{"day":1,"title":"","items":[{"type":"visit|meal|lodging","id":"P1 (visit/lodging only)","name":"(meal only: what/where to eat)","duration_min":60,"description":"","cost":0,"tips":""}]}],"tips":[""]}`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: { responseMimeType: 'application/json', temperature: 0.4 },
-    });
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    // ลำดับ fallback: ตัวที่โควตาเยอะ/เสถียรขึ้นก่อน เพื่อสลับอัตโนมัติเมื่อติด limit (429/quota) หรือ 404
+    const candidates_models = [
+      ...new Set(
+        [
+          process.env.GEMINI_MODEL,
+          // Lite = RPM สูง (15/10) เหมาะเป็น fallback ตอนติด limit
+          'gemini-3.1-flash-lite',
+          'gemini-3.5-flash-lite',
+          'gemini-2.5-flash-lite',
+          // Flash ปกติ (RPM 5) - ตามตารางโควตาที่คุณยังใช้ได้
+          'gemini-3.8-flash',
+          'gemini-3.7-flash',
+          'gemini-3.6-flash',
+          'gemini-3-flash',
+          'gemini-2.5-flash',
+          // alias รวม - ให้ API แมปไปรุ่นล่าสุดที่เปิดให้โปรเจกต์คุณ
+          'gemini-flash-latest',
+          'gemini-flash-lite-latest',
+          // legacy เผื่อกลับมาเปิดใหม่
+          'gemini-2.0-flash',
+          'gemini-1.5-flash',
+        ].filter(Boolean)
+      ),
+    ];
+
+    let responseText = null;
+    let lastError = null;
+    for (const modelName of candidates_models) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.4 },
+        });
+        const result = await model.generateContent(prompt);
+        responseText = result.response.text();
+        if (responseText) {
+          if (modelName !== candidates_models[0])
+            console.log(`Gemini success with fallback model: ${modelName}`);
+          break;
+        }
+      } catch (e) {
+        lastError = e;
+        const msg = e?.message || '';
+        const status = e?.status;
+        const isRetryable =
+          status === 404 ||
+          status === 429 ||
+          status === 500 ||
+          status === 502 ||
+          status === 503 ||
+          /not found|no longer available|quota|rate limit|resource exhausted|too many requests|overloaded|unavailable/i.test(
+            msg
+          );
+        if (!isRetryable) throw e;
+        console.warn(
+          `Gemini model ${modelName} failed (${status || 'no status'}), trying next...`,
+          msg.slice(0, 300)
+        );
+      }
+    }
+    if (!responseText) throw lastError || new Error('AI ไม่ตอบกลับ');
 
     let aiPlan;
     try {
@@ -321,7 +274,7 @@ Return JSON only:
       warnings,
       transport,
       itemCost,
-    } = buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd);
+    } = buildSchedule(aiPlan, candidates, startPoint, dayStart, dayEnd, roadMatrix, startDate);
     const total = transport + itemCost;
 
     const tips = [...(Array.isArray(aiPlan.tips) ? aiPlan.tips : [])];

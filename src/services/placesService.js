@@ -1,4 +1,5 @@
 import pool from '@/lib/db';
+import { serializeOpenDays } from '@/lib/openDays';
 
 /**
  * Get all places with search, filter, pagination
@@ -102,11 +103,12 @@ export async function createPlace(placeData) {
     open_time,
     close_time,
     phone,
+    open_days,
   } = placeData;
 
   const [result] = await pool.query(
-    `INSERT INTO places (category_id, name, description, history, address, latitude, longitude, open_time, close_time, phone)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO places (category_id, name, description, history, address, latitude, longitude, open_time, close_time, phone, open_days)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       category_id,
       name,
@@ -118,6 +120,7 @@ export async function createPlace(placeData) {
       open_time,
       close_time,
       phone,
+      serializeOpenDays(open_days),
     ]
   );
 
@@ -139,10 +142,11 @@ export async function updatePlace(id, placeData) {
     open_time,
     close_time,
     phone,
+    open_days,
   } = placeData;
 
   await pool.query(
-    `UPDATE places SET category_id=?, name=?, description=?, history=?, address=?, latitude=?, longitude=?, open_time=?, close_time=?, phone=?
+    `UPDATE places SET category_id=?, name=?, description=?, history=?, address=?, latitude=?, longitude=?, open_time=?, close_time=?, phone=?, open_days=?
      WHERE place_id=?`,
     [
       category_id,
@@ -155,6 +159,7 @@ export async function updatePlace(id, placeData) {
       open_time,
       close_time,
       phone,
+      serializeOpenDays(open_days),
       id,
     ]
   );

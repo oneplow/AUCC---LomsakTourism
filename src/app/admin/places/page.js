@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, X, MapPin, Eye, ImagePlus } from 'lucide-react';
 import Select from '@/components/Select';
+import OpenDaysField from '@/components/OpenDaysField';
 import useModalScrollLock from '@/hooks/useModalScrollLock';
 export default function AdminPlacesPage() {
   const [places, setPlaces] = useState([]);
@@ -20,6 +21,7 @@ export default function AdminPlacesPage() {
     longitude: '',
     open_time: '',
     close_time: '',
+    open_days: '',
     phone: '',
   });
   const [images, setImages] = useState([]);
@@ -94,6 +96,7 @@ export default function AdminPlacesPage() {
       longitude: '',
       open_time: '',
       close_time: '',
+      open_days: '',
       phone: '',
     });
     setEditingPlace(null);
@@ -112,6 +115,7 @@ export default function AdminPlacesPage() {
       longitude: p.longitude || '',
       open_time: p.open_time || '',
       close_time: p.close_time || '',
+      open_days: p.open_days || '',
       phone: p.phone || '',
     });
     setEditingPlace(p);
@@ -328,6 +332,11 @@ export default function AdminPlacesPage() {
                     />
                   </label>
                 ))}
+                <OpenDaysField
+                  className="sm:col-span-2"
+                  value={form.open_days}
+                  onChange={(open_days) => setForm({ ...form, open_days })}
+                />
                 {[
                   ['description', 'รายละเอียด'],
                   ['history', 'ประวัติ'],

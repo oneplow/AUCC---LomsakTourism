@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MapView from '@/components/MapView';
 import { useFavorite } from '@/hooks/useFavorites';
+import { formatOpenDays } from '@/lib/openDays';
 import { Heart, Share2, Eye, MapPin, Clock, Phone, Navigation, ChevronRight } from 'lucide-react';
 
 export default function PlaceDetailPage() {
@@ -196,6 +197,9 @@ export default function PlaceDetailPage() {
                     <p className="text-xs text-[#8a968d]">เวลาเปิด-ปิด</p>
                     <p className="mt-1 text-sm">
                       {place.open_time} - {place.close_time}
+                    </p>
+                    <p className="mt-0.5 text-sm text-[#68766d]">
+                      {formatOpenDays(place.open_days)}
                     </p>
                   </div>
                 </div>
