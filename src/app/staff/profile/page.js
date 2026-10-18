@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { UserCircle, Save, Lock, Mail, User } from 'lucide-react';
+import { UserCircle, Save, Lock, Mail, User, KeyRound, ShieldCheck } from 'lucide-react';
 export default function StaffProfilePage() {
   const [user, setUser] = useState(null);
   const [form, setForm] = useState({ full_name: '', email: '' });
@@ -67,17 +67,19 @@ export default function StaffProfilePage() {
     'min-h-11 w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30';
   if (!user) return null;
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="max-w-6xl space-y-8">
       <div>
         <h2 className="text-2xl font-semibold">ข้อมูลส่วนตัว</h2>
         <p className="mt-2 text-sm text-content-secondary">อัปเดตข้อมูลบัญชีและความปลอดภัยของคุณ</p>
       </div>
-      <section className="rounded-2xl border border-border bg-white p-5 sm:p-6">
+      {/* สองคอลัมน์บนจอกว้าง: ซ้าย = ข้อมูลบัญชี, ขวา = เปลี่ยนรหัสผ่าน (การ์ดสูงเท่ากัน ปุ่มอยู่แนวเดียวกัน) */}
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
+      <section className="flex flex-col rounded-2xl border border-border bg-white p-5 sm:p-6">
         <h3 className="flex items-center gap-2 font-semibold">
           <UserCircle className="h-5 w-5 text-primary" />
           ข้อมูลบัญชี
         </h3>
-        <form onSubmit={profile} className="mt-5 space-y-5">
+        <form onSubmit={profile} className="mt-5 flex flex-1 flex-col gap-5">
           <label className="block text-sm text-content-secondary">
             <span className="mb-2 flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -102,7 +104,7 @@ export default function StaffProfilePage() {
               className={input}
             />
           </label>
-          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-4">
             <button
               type="submit"
               className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white hover:bg-primary/90"
@@ -118,43 +120,52 @@ export default function StaffProfilePage() {
           </div>
         </form>
       </section>
-      <section className="rounded-2xl border border-border bg-white p-5 sm:p-6">
+      <section className="flex flex-col rounded-2xl border border-border bg-white p-5 sm:p-6">
         <h3 className="flex items-center gap-2 font-semibold">
           <Lock className="h-5 w-5 text-primary" />
           เปลี่ยนรหัสผ่าน
         </h3>
-        <form onSubmit={password} className="mt-5 space-y-5">
+        <form onSubmit={password} className="mt-5 flex flex-1 flex-col gap-5">
           <label className="block text-sm text-content-secondary">
-            รหัสผ่านปัจจุบัน
+            <span className="mb-2 flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />
+              รหัสผ่านปัจจุบัน
+            </span>
             <input
               type="password"
               required
               value={pwForm.current_password}
               onChange={(e) => setPwForm({ ...pwForm, current_password: e.target.value })}
-              className={`${input} mt-2`}
+              className={input}
             />
           </label>
           <label className="block text-sm text-content-secondary">
-            รหัสผ่านใหม่
+            <span className="mb-2 flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              รหัสผ่านใหม่
+            </span>
             <input
               type="password"
               required
               value={pwForm.new_password}
               onChange={(e) => setPwForm({ ...pwForm, new_password: e.target.value })}
-              className={`${input} mt-2`}
+              className={input}
             />
           </label>
           <label className="block text-sm text-content-secondary">
-            ยืนยันรหัสผ่านใหม่
+            <span className="mb-2 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              ยืนยันรหัสผ่านใหม่
+            </span>
             <input
               type="password"
               required
               value={pwForm.confirm}
               onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
-              className={`${input} mt-2`}
+              className={input}
             />
           </label>
-          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-border pt-4">
             <button
               type="submit"
               className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white hover:bg-primary/90"
@@ -170,6 +181,7 @@ export default function StaffProfilePage() {
           </div>
         </form>
       </section>
+      </div>
     </div>
   );
 }

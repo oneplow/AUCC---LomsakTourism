@@ -38,15 +38,46 @@ export async function GET(request) {
     }
 
     if (type === 'popular_categories') {
-      const [rows] = await pool.query(`
+      // staff เห็นเฉพาะยอดของสถานที่ที่ตัวเองดูแล
+      const isStaff = user.role === 'staff';
+      const [rows] = await pool.query(
+        `
         SELECT c.category_id, c.name, COUNT(pv.visit_id) as visit_count
         FROM categories c
         LEFT JOIN places p ON c.category_id = p.category_id
-        LEFT JOIN place_visits pv ON p.place_id = pv.place_id
+        ${isStaff ? 'LEFT JOIN staff_permissions sp ON p.place_id = sp.place_id AND sp.user_id = ?' : ''}
+        LEFT JOIN place_visits pv ON p.place_id = pv.place_id${isStaff ? ' AND sp.permission_id IS NOT NULL' : ''}
         GROUP BY c.category_id
         ORDER BY visit_count DESC
-      `);
+      `,
+        isStaff ? [user.user_id] : []
+      );
       return NextResponse.json({ data: rows });
+    }
+
+    // ยอดเข้าชมแยกรายสถานที่: ทั้งหมด / ทั้งปี / เดือนที่เลือก (staff = เฉพาะที่ดูแล)
+    if (type === 'place_breakdown') {
+      const now = new Date();
+      const year = Number(searchParams.get('year')) || now.getFullYear();
+      const month = Number(searchParams.get('month')) || now.getMonth() + 1;
+      const isStaff = user.role === 'staff';
+      const [rows] = await pool.query(
+        `
+        SELECT p.place_id, p.name, c.name AS category_name,
+          COUNT(pv.visit_id) AS total_visits,
+          COALESCE(SUM(YEAR(pv.visited_at) = ?), 0) AS year_visits,
+          COALESCE(SUM(YEAR(pv.visited_at) = ? AND MONTH(pv.visited_at) = ?), 0) AS month_visits,
+          MAX(pv.visited_at) AS last_visit
+        FROM places p
+        ${isStaff ? 'JOIN staff_permissions sp ON p.place_id = sp.place_id AND sp.user_id = ?' : ''}
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN place_visits pv ON p.place_id = pv.place_id
+        GROUP BY p.place_id, p.name, c.name
+        ORDER BY month_visits DESC, total_visits DESC
+      `,
+        [year, year, month, ...(isStaff ? [user.user_id] : [])]
+      );
+      return NextResponse.json({ data: rows, year, month });
     }
 
     if (type === 'daily_visits' || type === 'monthly_visits') {
@@ -70,7 +101,8 @@ export async function GET(request) {
         `,
           [...staffParams, year, month]
         );
-        const [tripRows] = await pool.query(
+        // แผนทริป AI ไม่ผูกกับสถานที่ใดโดยตรง จึงไม่ส่งให้ staff
+        const [tripRows] = user.role === 'staff' ? [[]] : await pool.query(
           `
           SELECT DAY(created_at) AS day, COUNT(*) AS total
           FROM trip_plans
@@ -93,7 +125,7 @@ export async function GET(request) {
       `,
         [...staffParams, year]
       );
-      const [tripRows] = await pool.query(
+      const [tripRows] = user.role === 'staff' ? [[]] : await pool.query(
         `
         SELECT MONTH(created_at) AS month, COUNT(*) AS total
         FROM trip_plans

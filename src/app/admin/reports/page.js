@@ -1,343 +1,20 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import Select from '@/components/Select';
-import { Download, TrendingUp, BarChart3, CalendarDays, PieChart } from 'lucide-react';
-
-const THAI_MONTHS_SHORT = [
-  'ม.ค.',
-  'ก.พ.',
-  'มี.ค.',
-  'เม.ย.',
-  'พ.ค.',
-  'มิ.ย.',
-  'ก.ค.',
-  'ส.ค.',
-  'ก.ย.',
-  'ต.ค.',
-  'พ.ย.',
-  'ธ.ค.',
-];
-const THAI_MONTHS_FULL = [
-  'มกราคม',
-  'กุมภาพันธ์',
-  'มีนาคม',
-  'เมษายน',
-  'พฤษภาคม',
-  'มิถุนายน',
-  'กรกฎาคม',
-  'สิงหาคม',
-  'กันยายน',
-  'ตุลาคม',
-  'พฤศจิกายน',
-  'ธันวาคม',
-];
-const CATEGORY_COLORS = [
-  '#285943',
-  '#b96545',
-  '#b58a4a',
-  '#3f6fa8',
-  '#8c5aa8',
-  '#397653',
-  '#a63e39',
-  '#4a7a8c',
-];
-
-const CHART_W = 1000;
-const CHART_H = 260;
-const PAD = { top: 16, right: 16, bottom: 34, left: 44 };
-const AXIS_COLOR = '#d8d0c3';
-const GRID_COLOR = '#e9e3da';
-const LABEL_COLOR = '#8a908a';
-
-function niceScale(rawMax) {
-  const max = Math.max(Number(rawMax) || 0, 1);
-  const rough = max / 4;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)));
-  const normalized = rough / magnitude;
-  const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
-  const top = Math.ceil(max / step) * step;
-  const ticks = [];
-  for (let value = 0; value <= top + step / 1000; value += step) ticks.push(Math.round(value));
-  return { top, ticks };
-}
-
-function formatNumber(value) {
-  return (Number(value) || 0).toLocaleString('th-TH');
-}
-
-function ChartLegend({ series }) {
-  return (
-    <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-content-secondary">
-      {series.map((item) => (
-        <li key={item.name} className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ background: item.color }}
-          />
-          {item.name}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ExportButton({ onClick, disabled }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-surface-alt px-3.5 py-2 text-xs font-medium text-content-secondary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <Download className="h-4 w-4" />
-      Export CSV
-    </button>
-  );
-}
-
-function ChartCard({ title, subtitle, icon: Icon, onExport, exportDisabled, children }) {
-  return (
-    <section className="rounded-3xl border border-border bg-white p-5 sm:p-6">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-border-light pb-4">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-white">
-            <Icon className="h-5 w-5" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold">{title}</h2>
-            {subtitle && <p className="mt-1 text-xs text-content-muted">{subtitle}</p>}
-          </div>
-        </div>
-        {onExport && <ExportButton onClick={onExport} disabled={exportDisabled} />}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function EmptyChart() {
-  return (
-    <p className="py-16 text-center text-sm text-content-muted">ยังไม่มีข้อมูลสำหรับช่วงเวลานี้</p>
-  );
-}
-
-function LineChart({ labels, series }) {
-  const { top, ticks } = niceScale(Math.max(...series.flatMap((item) => item.values), 0));
-  const innerW = CHART_W - PAD.left - PAD.right;
-  const innerH = CHART_H - PAD.top - PAD.bottom;
-  const stepX = labels.length > 1 ? innerW / (labels.length - 1) : 0;
-  const xAt = (index) => PAD.left + index * stepX;
-  const yAt = (value) => PAD.top + innerH - (value / top) * innerH;
-  const labelStep = labels.length > 16 ? 2 : 1;
-
-  return (
-    <svg
-      viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-      className="w-full"
-      role="img"
-      aria-label="กราฟแนวโน้มผู้เข้าชม"
-    >
-      {ticks.map((tick) => (
-        <g key={`tick-${tick}`}>
-          <line
-            x1={PAD.left}
-            x2={CHART_W - PAD.right}
-            y1={yAt(tick)}
-            y2={yAt(tick)}
-            stroke={GRID_COLOR}
-            strokeWidth="1"
-            strokeDasharray="4 6"
-          />
-          <text
-            x={PAD.left - 10}
-            y={yAt(tick) + 4}
-            textAnchor="end"
-            fontSize="11"
-            fill={LABEL_COLOR}
-          >
-            {tick}
-          </text>
-        </g>
-      ))}
-      <line
-        x1={PAD.left}
-        x2={CHART_W - PAD.right}
-        y1={yAt(0)}
-        y2={yAt(0)}
-        stroke={AXIS_COLOR}
-        strokeWidth="1.5"
-      />
-      {labels.map(
-        (label, index) =>
-          (index % labelStep === 0 || index === labels.length - 1) && (
-            <text
-              key={`x-${label}`}
-              x={xAt(index)}
-              y={CHART_H - 12}
-              textAnchor="middle"
-              fontSize="11"
-              fill={LABEL_COLOR}
-            >
-              {label}
-            </text>
-          )
-      )}
-      {series.map((item) => (
-        <g key={item.name}>
-          <polyline
-            points={item.values.map((value, index) => `${xAt(index)},${yAt(value)}`).join(' ')}
-            fill="none"
-            stroke={item.color}
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {item.values.map((value, index) => (
-            <circle
-              key={`${item.name}-${index}`}
-              cx={xAt(index)}
-              cy={yAt(value)}
-              r="4"
-              fill="#fff"
-              stroke={item.color}
-              strokeWidth="2.5"
-            >
-              <title>{`${labels[index]} · ${item.name} ${formatNumber(value)}`}</title>
-            </circle>
-          ))}
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-function BarChart({ labels, series }) {
-  const { top, ticks } = niceScale(Math.max(...series.flatMap((item) => item.values), 0));
-  const innerW = CHART_W - PAD.left - PAD.right;
-  const innerH = CHART_H - PAD.top - PAD.bottom;
-  const groupW = innerW / Math.max(labels.length, 1);
-  const barW =
-    series.length > 1 ? Math.min((groupW * 0.7) / series.length, 22) : Math.min(groupW * 0.55, 26);
-  const yAt = (value) => PAD.top + innerH - (value / top) * innerH;
-  const barH = (value) => Math.max((value / top) * innerH, value > 0 ? 2 : 0);
-
-  return (
-    <svg
-      viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-      className="w-full"
-      role="img"
-      aria-label="กราฟแท่งเปรียบเทียบข้อมูล"
-    >
-      {ticks.map((tick) => (
-        <g key={`tick-${tick}`}>
-          <line
-            x1={PAD.left}
-            x2={CHART_W - PAD.right}
-            y1={yAt(tick)}
-            y2={yAt(tick)}
-            stroke={GRID_COLOR}
-            strokeWidth="1"
-            strokeDasharray="4 6"
-          />
-          <text
-            x={PAD.left - 10}
-            y={yAt(tick) + 4}
-            textAnchor="end"
-            fontSize="11"
-            fill={LABEL_COLOR}
-          >
-            {tick}
-          </text>
-        </g>
-      ))}
-      <line
-        x1={PAD.left}
-        x2={CHART_W - PAD.right}
-        y1={yAt(0)}
-        y2={yAt(0)}
-        stroke={AXIS_COLOR}
-        strokeWidth="1.5"
-      />
-      {labels.map((label, index) => {
-        const groupCenter = PAD.left + groupW * index + groupW / 2;
-        const seriesW = barW * series.length;
-        return (
-          <g key={`group-${label}`}>
-            {series.map((item, seriesIndex) => {
-              const value = item.values[index];
-              const x = groupCenter - seriesW / 2 + seriesIndex * barW;
-              return (
-                <rect
-                  key={`${item.name}-${index}`}
-                  x={x}
-                  y={yAt(value)}
-                  width={barW}
-                  height={barH(value)}
-                  rx="3"
-                  fill={item.color}
-                  opacity={series.length > 1 && seriesIndex === 1 ? 0.92 : 1}
-                >
-                  <title>{`${label} · ${item.name} ${formatNumber(value)}`}</title>
-                </rect>
-              );
-            })}
-            <text
-              x={groupCenter}
-              y={CHART_H - 12}
-              textAnchor="middle"
-              fontSize="11"
-              fill={LABEL_COLOR}
-            >
-              {label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function DonutChart({ items, total }) {
-  let cursor = 0;
-  const stops = items.map((item, index) => {
-    const start = cursor;
-    const end = start + (item.value / total) * 100;
-    cursor = end;
-    return `${CATEGORY_COLORS[index % CATEGORY_COLORS.length]} ${start}% ${end}%`;
-  });
-  return (
-    <div
-      className="relative mx-auto h-52 w-52 shrink-0"
-      role="img"
-      aria-label={`สัดส่วนผู้เข้าชม ${formatNumber(total)} ครั้ง`}
-    >
-      <div
-        className="h-full w-full rounded-full"
-        style={{ background: `conic-gradient(${stops.join(', ')})` }}
-      />
-      <div className="absolute inset-[22%] flex flex-col items-center justify-center rounded-full bg-white">
-        <span className="text-2xl font-semibold">{formatNumber(total)}</span>
-        <span className="mt-1 text-xs text-content-muted">ครั้งทั้งหมด</span>
-      </div>
-    </div>
-  );
-}
-
-function downloadCsv(filename, rows) {
-  const csv = rows
-    .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
-    .join('\r\n');
-  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
+import { TrendingUp, BarChart3, CalendarDays, PieChart } from 'lucide-react';
+import {
+  THAI_MONTHS_SHORT,
+  THAI_MONTHS_FULL,
+  CATEGORY_COLORS,
+  formatNumber,
+  ChartLegend,
+  ChartCard,
+  EmptyChart,
+  LineChart,
+  BarChart,
+  DonutChart,
+  downloadCsv,
+} from '@/components/reports/ReportCharts';
 
 export default function AdminReportsPage() {
   const now = new Date();
@@ -349,6 +26,7 @@ export default function AdminReportsPage() {
   const [loadingDaily, setLoadingDaily] = useState(true);
   const [loadingMonthly, setLoadingMonthly] = useState(true);
   const [loadingCats, setLoadingCats] = useState(true);
+  const [activeCat, setActiveCat] = useState(null);
 
   const loadDaily = useCallback(async () => {
     setLoadingDaily(true);
@@ -490,6 +168,7 @@ export default function AdminReportsPage() {
           <div className="space-y-4">
             <LineChart
               labels={dailyLabels}
+              formatLabel={(i) => `${i + 1} ${monthLabel}`}
               series={[
                 { name: 'ผู้เข้าชม', color: '#b96545', values: dailyVisits },
                 { name: 'แผนทริป AI', color: '#3f6fa8', values: dailyTrips },
@@ -524,6 +203,7 @@ export default function AdminReportsPage() {
         ) : dailyVisits.some((value) => value > 0) ? (
           <BarChart
             labels={dailyLabels}
+            formatLabel={(i) => `${i + 1} ${monthLabel}`}
             series={[{ name: 'ผู้เข้าชม', color: '#b96545', values: dailyVisits }]}
           />
         ) : (
@@ -553,6 +233,7 @@ export default function AdminReportsPage() {
           <div className="space-y-4">
             <BarChart
               labels={THAI_MONTHS_SHORT}
+              formatLabel={(i) => `${THAI_MONTHS_FULL[i]} ${year + 543}`}
               series={[
                 { name: 'ผู้เข้าชม', color: '#285943', values: monthlyVisits },
                 { name: 'แผนทริป AI', color: '#b96545', values: monthlyTrips },
@@ -590,7 +271,12 @@ export default function AdminReportsPage() {
           <div className="h-56 animate-pulse rounded-2xl bg-surface-alt" />
         ) : categoryItems.length ? (
           <div className="grid gap-8 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)] lg:items-center">
-            <DonutChart items={categoryItems} total={categoryTotal} />
+            <DonutChart
+              items={categoryItems}
+              total={categoryTotal}
+              activeIndex={activeCat}
+              onActiveChange={setActiveCat}
+            />
             <div className="overflow-hidden rounded-2xl border border-border">
               <table className="w-full text-sm">
                 <thead className="bg-surface-alt text-xs text-content-secondary">
@@ -611,7 +297,12 @@ export default function AdminReportsPage() {
                 </thead>
                 <tbody className="divide-y divide-border-light">
                   {categoryItems.map((item, index) => (
-                    <tr key={item.label}>
+                    <tr
+                      key={item.label}
+                      onPointerEnter={() => setActiveCat(index)}
+                      onPointerLeave={() => setActiveCat(null)}
+                      className={`transition-colors ${activeCat === index ? 'bg-surface-alt' : ''}`}
+                    >
                       <td className="px-4 py-3">
                         <span className="flex items-center gap-2.5">
                           <span
