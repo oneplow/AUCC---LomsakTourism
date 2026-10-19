@@ -30,12 +30,12 @@ export default function Navbar() {
   return (
     <nav className="nature-nav" aria-label="เมนูหลัก">
       <div className="page-shell flex h-20 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3" aria-label="หล่มสักทริป AI หน้าแรก">
+        <Link href="/" className="flex items-center gap-3" aria-label="หล่มสักจัดทริป AI หน้าแรก">
           <span className="brand-mark">
             <Compass size={23} strokeWidth={1.5} />
           </span>
           <span>
-            <span className="block font-semibold text-lg text-primary-dark">หล่มสักทริป AI</span>
+            <span className="block font-semibold text-lg text-primary-dark">หล่มสักจัดทริป AI</span>
             <span className="block text-[10px] tracking-[0.2em] text-content-secondary">
               LOMSAK · SMART TRIP PLANNER
             </span>

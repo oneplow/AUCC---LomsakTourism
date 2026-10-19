@@ -41,6 +41,16 @@ export const toMin = (t) => {
 export const toHHMM = (m) =>
   `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
+// วันที่ปัจจุบันตามเวลาไทย (server บน Vercel ใช้ UTC) — ใช้กันเลือกวันที่ที่ผ่านไปแล้ว
+export function bangkokToday(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 export const isLodging = (cat) => /ที่พัก|รีสอร์ท|โรงแรม/.test(cat || '');
 export const visitMinutes = (cat, name = '') => {
   if (/อนุสาวรีย์|อนุสรณ์|ศาลเจ้า|ศาลหลักเมือง|ป้าย|ซุ้ม/.test(name)) return 30;

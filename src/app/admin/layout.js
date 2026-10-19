@@ -113,7 +113,7 @@ export default function AdminLayout({ children }) {
                 <Compass className="h-5 w-5" />
               </span>
               <span>
-                <strong className="block text-sm">หล่มสักทริป AI</strong>
+                <strong className="block text-sm">หล่มสักจัดทริป AI</strong>
                 <small className="text-xs text-content-muted">Admin workspace</small>
               </span>
             </Link>

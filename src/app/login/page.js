@@ -51,7 +51,7 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <span className="text-2xl font-semibold tracking-tight">หล่มสักทริป AI</span>
+          <span className="text-2xl font-semibold tracking-tight">หล่มสักจัดทริป AI</span>
         </div>
         <div className="relative max-w-lg">
           <p className="mb-5 text-sm font-medium uppercase tracking-[0.25em] text-[#d6b36a]">
@@ -77,7 +77,7 @@ export default function LoginPage() {
               href="/"
               className="inline-flex items-center gap-2 text-xl font-semibold text-[#173d2d]"
             >
-              หล่มสักทริป AI
+              หล่มสักจัดทริป AI
             </Link>
           </div>
           <div className="mb-8">

@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr]">
           <div>
             <Link href="/" className="inline-flex items-center gap-3 text-xl font-semibold">
-              <Compass size={27} strokeWidth={1.5} /> หล่มสักทริป AI
+              <Compass size={27} strokeWidth={1.5} /> หล่มสักจัดทริป AI
             </Link>
             <p className="mt-5 text-white/75 leading-7 max-w-sm">
               เดินทางให้ช้าลง มองเห็นให้มากขึ้น
@@ -43,7 +43,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-6 border-t border-white/20 flex flex-wrap justify-between gap-3 text-xs text-white/65">
-          <p>© 2026 หล่มสักทริป AI · ผู้ช่วยอัจฉริยะจัดทริปท่องเที่ยว อำเภอหล่มสัก</p>
+          <p>© 2026 หล่มสักจัดทริป AI · ผู้ช่วยอัจฉริยะจัดทริปท่องเที่ยว อำเภอหล่มสัก</p>
           <p>เคารพธรรมชาติ ใส่ใจชุมชน ในทุกการเดินทาง</p>
         </div>
       </div>

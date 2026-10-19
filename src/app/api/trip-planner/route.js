@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   FUEL_THB_PER_KM,
   ROAD_FACTOR,
+  bangkokToday,
   buildRoadMatrix,
   buildSchedule,
   isLodging,
@@ -37,6 +38,11 @@ export async function POST(request) {
         { error: 'ช่วงเวลาเที่ยวต่อวันต้องไม่น้อยกว่า 2 ชั่วโมง' },
         { status: 400 }
       );
+    }
+
+    // ระบบเน้นจัดทริปล่วงหน้า: ใช้วันที่/เวลาที่ผู้ใช้เลือกตามจริง แค่กันวันที่ที่ผ่านไปแล้ว
+    if (startDate && startDate < bangkokToday()) {
+      return NextResponse.json({ error: 'วันที่เริ่มเดินทางผ่านมาแล้ว' }, { status: 400 });
     }
 
     let placesQuery = `

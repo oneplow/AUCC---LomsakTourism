@@ -49,7 +49,7 @@ export default function PlaceCard({ place }) {
                 <MapPin size={28} strokeWidth={1.3} />
               </div>
               <div className="relative">
-                <p className="text-sm font-medium text-primary">หล่มสักทริป AI</p>
+                <p className="text-sm font-medium text-primary">หล่มสักจัดทริป AI</p>
                 <p className="mt-1 text-xs leading-5 text-content-secondary">ยังไม่มีภาพให้แสดง</p>
               </div>
             </div>
